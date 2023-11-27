@@ -11,7 +11,7 @@ parse.chip.time <- function (chip.time) {
   as.numeric(hms(chip.time), "mins")
 }
 
-main <- function () {
+main <- function (argv = c()) {
   current.year = 2023
   performances <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/?usp=sharing",
@@ -33,21 +33,26 @@ main <- function () {
       minutes = sapply(chip_time, parse.chip.time)
     ) %>%
     mutate(pace = minutes / miles)
+  if (!('--all' %in% argv)) {
+  mile.paces <- mile.paces %>%
+    group_by(athlete, miles) %>%
+    summarise(pace = min(pace))
+  }
   required.race.distances <- c(5 / 1.609334, 10 / 1.609334, 13.1, 26.2)
   rose.bud.w <- c(17 + 25 / 60, 36 + 47 / 60, 60 + 21, 2 * 60 + 55)
-  ggplot(mile.paces, mapping = aes(x = miles, y = pace)) +
+  ggplot(mile.paces, aes(x = miles, y = pace)) +
     geom_point(size = 1, alpha = 0.5) +
     geom_line(data = tibble(
       miles = required.race.distances,
       pace = c(25 + 1 / 60, 52 + 10 / 60, 60 + 55, 4 * 60) / required.race.distances
     )) +
     geom_line(data = tibble(
-      miles = required.race.distances,
-      pace = rose.bud.w / required.race.distances
+       miles = required.race.distances,
+       pace = rose.bud.w / required.race.distances
     )) +
     geom_line(data = tibble(
-      miles = required.race.distances,
-      pace = rose.bud.w / 1.12 / required.race.distances
+       miles = required.race.distances,
+       pace = rose.bud.w / 1.12 / required.race.distances
     )) +
     scale_x_continuous(name = "Race distance (mi)", breaks = seq(0, 200, by = 5)) +
     scale_y_continuous(name = "Race pace (minutes/mi)") +
