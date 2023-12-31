@@ -15,7 +15,7 @@ main <- function (argv = c()) {
   current.year = 2023
   performances <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/?usp=sharing",
-    col_types = "ccDccccccdcddddd"
+    col_types = "ccDccccccdcdddddcc"
   )
   mile.paces <- performances %>%
     filter(Discipline == "Road") %>%
