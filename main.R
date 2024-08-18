@@ -12,7 +12,7 @@ parse.chip.time <- function (chip.time) {
   as.numeric(lubridate::hms(chip.time), "mins")
 }
 
-required.race.distances <- c("5 k", "10 k", "Half marathon", "Marathon")
+required.race.distances <- c("5k", "10k", "Half marathon", "Marathon")
 
 time.standard <- tibble(
   distance = factor(required.race.distances, levels = required.race.distances),
@@ -21,7 +21,7 @@ time.standard <- tibble(
 
 conversions <- tibble(
   distance = c(required.race.distances, "3 mi", "Quarter marathon"),
-  to = c(required.race.distances, "5 k", "10 k"),
+  to = c(required.race.distances, "5k", "10k"),
   conversion.factor = c(rep(1, 4), 5 / (3 * 1.609334), 10 / ((26+(385*3/5280)) / 4 * 1.609334))
 )
 
@@ -69,7 +69,7 @@ main <- function (argv = c()) {
       race = Race,
       year = year(Date),
       date = Date,
-      distance = Distance,
+      distance = gsub(" k", "k", Distance),
       chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
     ) %>%
     filter(year == current.year) %>%
