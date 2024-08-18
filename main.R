@@ -13,6 +13,11 @@ parse.chip.time <- function (chip.time) {
 
 required.race.distances <- c("5 k", "10 k", "Half marathon", "Marathon")
 
+time.standard <- tibble(
+  distance = factor(required.race.distances, levels = required.race.distances),
+  standard = c(25 + 1 / 60, 52 + 10 / 60, 60 + 55, 4 * 60)
+)
+
 conversions <- tibble(
   distance = c(required.race.distances, "3 mi", "Quarter marathon"),
   to = c(required.race.distances, "5 k", "10 k"),
@@ -58,5 +63,6 @@ main <- function (argv = c()) {
   ggplot(finish.times, aes(x = minutes)) +
     facet_wrap(vars(distance), scales = "free") +
     geom_histogram() +
+    geom_vline(data = time.standard, aes(xintercept = standard)) +
     ggtitle(paste("Race results in", current.year), subtitle = "Road race results for all Rose City athletes")
 }
