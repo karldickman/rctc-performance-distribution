@@ -29,6 +29,23 @@ minutes.as.POSIXct <- function (minutes) {
   as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
 }
 
+fetch.data <- function () {
+  cached <- "Performances.csv"
+  if (file.exists(cached)) {
+    return(read.csv(cached, check.names = FALSE))
+  }
+  columns <- data.frame(
+    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
+    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
+  )
+  performances <- read_sheet(
+    "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/?usp=sharing",
+    col_types = paste(columns$type, collapse = "")
+  )
+  write.csv(performances, cached, row.names = FALSE)
+  performances
+}
+
 plot <- function (finish.times, time.standard, year) {
   time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))
   finish.times %>%
@@ -56,14 +73,7 @@ table <- function (finish.times) {
 
 main <- function (argv = c()) {
   current.year = 2023
-  columns <- data.frame(
-    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
-    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
-  )
-  performances <- read_sheet(
-    "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/?usp=sharing",
-    col_types = paste(columns$type, collapse = "")
-  )
+  performances <- fetch.data()
   finish.times <- performances %>%
     filter(Discipline == "Road") %>%
     transmute(
