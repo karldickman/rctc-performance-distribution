@@ -66,7 +66,8 @@ table <- function (finish.times) {
     summarise(
       median = as_hms(round(median(minutes) * 60)),
       mean = as_hms(round(mean(minutes) * 60)),
-      `90%ile` = as_hms(round(quantile(minutes, 0.9) * 60))
+      `90%ile` = as_hms(round(quantile(minutes, 0.9) * 60)),
+      max = as_hms(round(max(minutes) * 60))
     ) %>%
     inner_join(mutate(time.standard, standard = as_hms(standard * 60)))
 }
