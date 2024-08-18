@@ -48,8 +48,8 @@ fetch.data <- function () {
 
 plot <- function (finish.times, time.standard, since) {
   time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))
-  finish.times %>%
-    mutate(minutes = minutes.as.POSIXct(minutes)) %>%
+  finish.times |>
+    mutate(minutes = minutes.as.POSIXct(minutes)) |>
     ggplot(aes(x = minutes)) +
     facet_wrap(vars(distance), scales = "free") +
     geom_histogram(bins = 10) +
@@ -61,43 +61,43 @@ plot <- function (finish.times, time.standard, since) {
 }
 
 table <- function (finish.times) {
-  finish.times %>%
-    group_by(distance) %>%
+  finish.times |>
+    group_by(distance) |>
     summarise(
       median = as_hms(round(median(minutes) * 60)),
       mean = as_hms(round(mean(minutes) * 60)),
       `90%ile` = as_hms(round(quantile(minutes, 0.9) * 60)),
       max = as_hms(round(max(minutes) * 60))
-    ) %>%
+    ) |>
     inner_join(mutate(time.standard, standard = as_hms(standard * 60)))
 }
 
 main <- function (argv = c()) {
   since = Sys.Date() - 365
   performances <- fetch.data()
-  finish.times <- performances %>%
-    filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) %>%
+  finish.times <- performances |>
+    filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) |>
     transmute(
       athlete = Athlete,
       race = Race,
       date = ymd(Date),
       distance = gsub(" k", "k", Distance),
       chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
-    ) %>%
-    filter(date >= since) %>%
-    filter(!is.na(chip_time)) %>%
-    inner_join(conversions) %>%
-    mutate(minutes = sapply(chip_time, parse.chip.time)) %>%
+    ) |>
+    filter(date >= since) |>
+    filter(!is.na(chip_time)) |>
+    inner_join(conversions) |>
+    mutate(minutes = sapply(chip_time, parse.chip.time)) |>
     mutate(
       distance = to,
       minutes = minutes * conversion.factor
-    ) %>%
+    ) |>
     mutate(
       distance = factor(distance, levels = required.race.distances)
     )
   if (!('--all' %in% argv)) {
-    finish.times <- finish.times %>%
-      group_by(athlete, distance) %>%
+    finish.times <- finish.times |>
+      group_by(athlete, distance) |>
       summarise(minutes = min(minutes))
   }
   print(table(finish.times))
