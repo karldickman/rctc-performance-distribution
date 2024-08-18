@@ -13,9 +13,13 @@ parse.chip.time <- function (chip.time) {
 
 main <- function (argv = c()) {
   current.year = 2023
+  columns <- data.frame(
+    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
+    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
+  )
   performances <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/?usp=sharing",
-    col_types = "ccDccccccdcdddddcc"
+    col_types = paste(columns$type, collapse = "")
   )
   mile.paces <- performances %>%
     filter(Discipline == "Road") %>%
