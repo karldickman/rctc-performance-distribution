@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(googlesheets4)
+library(hms)
 library(lubridate)
 library(stringr)
 
@@ -8,7 +9,7 @@ parse.chip.time <- function (chip.time) {
   if (str_count(chip.time, ":") == 1) {
     chip.time <- paste0("0:", chip.time)
   }
-  as.numeric(hms(chip.time), "mins")
+  as.numeric(lubridate::hms(chip.time), "mins")
 }
 
 required.race.distances <- c("5 k", "10 k", "Half marathon", "Marathon")
@@ -38,6 +39,17 @@ plot <- function (finish.times, time.standard, year) {
     geom_vline(data = time.standard, aes(xintercept = standard)) +
     scale_x_datetime(date_labels = "%-H:%M") +
     ggtitle(paste("Race results in", year), subtitle = "Road race results for all Rose City athletes")
+}
+
+table <- function (finish.times) {
+  finish.times %>%
+    group_by(distance) %>%
+    summarise(
+      median = as_hms(round(median(minutes) * 60)),
+      mean = as_hms(round(mean(minutes) * 60)),
+      `90%ile` = as_hms(round(quantile(minutes, 0.9) * 60))
+    ) %>%
+    inner_join(mutate(time.standard, standard = as_hms(standard * 60)))
 }
 
 main <- function (argv = c()) {
@@ -76,5 +88,6 @@ main <- function (argv = c()) {
       group_by(athlete, distance) %>%
       summarise(minutes = min(minutes))
   }
+  print(table(finish.times))
   plot(finish.times, time.standard, current.year)
 }
