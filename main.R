@@ -24,6 +24,10 @@ conversions <- tibble(
   conversion.factor = c(rep(1, 4), 5 / (3 * 1.609334), 10 / ((26+(385*3/5280)) / 4 * 1.609334))
 )
 
+minutes.as.POSIXct <- function (minutes) {
+  as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
+}
+
 main <- function (argv = c()) {
   current.year = 2023
   columns <- data.frame(
@@ -60,9 +64,13 @@ main <- function (argv = c()) {
       group_by(athlete, distance) %>%
       summarise(minutes = min(minutes))
   }
-  ggplot(finish.times, aes(x = minutes)) +
+  time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))
+  finish.times %>%
+    mutate(minutes = minutes.as.POSIXct(minutes)) %>%
+    ggplot(aes(x = minutes)) +
     facet_wrap(vars(distance), scales = "free") +
     geom_histogram() +
     geom_vline(data = time.standard, aes(xintercept = standard)) +
+    scale_x_datetime(date_labels = "%-H:%M") +
     ggtitle(paste("Race results in", current.year), subtitle = "Road race results for all Rose City athletes")
 }
