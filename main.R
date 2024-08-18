@@ -38,7 +38,9 @@ plot <- function (finish.times, time.standard, year) {
     geom_histogram() +
     geom_vline(data = time.standard, aes(xintercept = standard)) +
     scale_x_datetime(date_labels = "%-H:%M") +
-    ggtitle(paste("Race results in", year), subtitle = "Road race results for all Rose City athletes")
+    ggtitle(paste("Race results in", year), subtitle = "Road race results for all Rose City athletes") +
+    xlab("Finish time (h:mm)") +
+    ylab("Frequency")
 }
 
 table <- function (finish.times) {
