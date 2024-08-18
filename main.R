@@ -46,7 +46,7 @@ fetch.data <- function () {
   performances
 }
 
-plot <- function (finish.times, time.standard, year) {
+plot <- function (finish.times, time.standard, since) {
   time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))
   finish.times %>%
     mutate(minutes = minutes.as.POSIXct(minutes)) %>%
@@ -55,7 +55,7 @@ plot <- function (finish.times, time.standard, year) {
     geom_histogram(bins = 10) +
     geom_vline(data = time.standard, aes(xintercept = standard)) +
     scale_x_datetime(date_labels = "%-H:%M") +
-    ggtitle(paste("Race results in", year), subtitle = "Road race results for all Rose City athletes") +
+    ggtitle(paste("Race results since", since), subtitle = "Road race results for all Rose City athletes") +
     xlab("Finish time (h:mm)") +
     ylab("Frequency")
 }
@@ -72,19 +72,18 @@ table <- function (finish.times) {
 }
 
 main <- function (argv = c()) {
-  current.year = 2023
+  since = Sys.Date() - 365
   performances <- fetch.data()
   finish.times <- performances %>%
-    filter(Discipline == "Road") %>%
+    filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) %>%
     transmute(
       athlete = Athlete,
       race = Race,
-      year = year(Date),
-      date = Date,
+      date = ymd(Date),
       distance = gsub(" k", "k", Distance),
       chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
     ) %>%
-    filter(year == current.year) %>%
+    filter(date >= since) %>%
     filter(!is.na(chip_time)) %>%
     inner_join(conversions) %>%
     mutate(minutes = sapply(chip_time, parse.chip.time)) %>%
@@ -101,5 +100,5 @@ main <- function (argv = c()) {
       summarise(minutes = min(minutes))
   }
   print(table(finish.times))
-  plot(finish.times, time.standard, current.year)
+  plot(finish.times, time.standard, since)
 }
