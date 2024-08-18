@@ -52,7 +52,7 @@ plot <- function (finish.times, time.standard, year) {
     mutate(minutes = minutes.as.POSIXct(minutes)) %>%
     ggplot(aes(x = minutes)) +
     facet_wrap(vars(distance), scales = "free") +
-    geom_histogram() +
+    geom_histogram(bins = 10) +
     geom_vline(data = time.standard, aes(xintercept = standard)) +
     scale_x_datetime(date_labels = "%-H:%M") +
     ggtitle(paste("Race results in", year), subtitle = "Road race results for all Rose City athletes") +
