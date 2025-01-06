@@ -73,17 +73,20 @@ table <- function (finish.times) {
 }
 
 main <- function (argv = c()) {
-  since = Sys.Date() - 365
+  since <- Sys.Date() - 365
+  year.of.interest <- argv[[1]]
   performances <- fetch.data()
   finish.times <- performances |>
     filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) |>
     transmute(
       athlete = Athlete,
       race = Race,
+      year = year(Date),
       date = ymd(Date),
       distance = gsub(" k", "k", Distance),
       chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
     ) |>
+    #filter(year == year.of.interest) |>
     filter(date >= since) |>
     filter(!is.na(chip_time)) |>
     inner_join(conversions) |>
