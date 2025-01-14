@@ -29,9 +29,9 @@ minutes.as.POSIXct <- function (minutes) {
   as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
 }
 
-fetch.data <- function () {
+fetch.data <- function (cache) {
   cached <- "Performances.csv"
-  if (file.exists(cached)) {
+  if (cache) {
     return(read.csv(cached, check.names = FALSE))
   }
   columns <- data.frame(
@@ -75,7 +75,7 @@ table <- function (finish.times) {
 main <- function (argv = c()) {
   since <- Sys.Date() - 365
   year.of.interest <- argv[[1]]
-  performances <- fetch.data()
+  performances <- fetch.data("--cache" %in% argv)
   finish.times <- performances |>
     filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) |>
     transmute(
