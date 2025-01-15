@@ -19,9 +19,7 @@ fetch.roster <- function (cache = FALSE) {
   data
 }
 
-main <- function (argv = c()) {
-  performances <- fetch.data("--cache" %in% argv)
-  roster <- fetch.roster("--cache" %in% argv)
+count.races <- function (performances, roster) {
   races.by.athlete <- performances |>
     filter(is.na(Flag) | Flag != "Relay") |>
     transmute(
@@ -40,10 +38,19 @@ main <- function (argv = c()) {
     filter((is.na(Status) | Status != "Left") & `Date joined` < as.Date("2025-01-01")) |>
     transmute(athlete = Name) |>
     left_join(races.by.athlete) |>
-    mutate(n = ifelse(is.na(n), 0, n)) |>
-    ggplot(aes(x = n)) +
+    mutate(n = ifelse(is.na(n), 0, n))
+}
+
+plot <- function (data) {
+  ggplot(data, aes(x = n)) +
     geom_histogram() +
     ggtitle("Distribution of tims raced in 2024") +
     xlab("Number of races") +
     ylab("Count of teammats")
+}
+
+main <- function (argv = c()) {
+  performances <- fetch.data("--cache" %in% argv)
+  roster <- fetch.roster("--cache" %in% argv)
+  count.races(performances, roster) |> plot()
 }
