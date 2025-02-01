@@ -34,23 +34,34 @@ count.races <- function (performances, roster) {
     filter(year == 2024 & !(gender %in% c("Female team", "Male team", "Male Team", "Female Team"))) |>
     group_by(athlete) |>
     tally()
+  start.date <- as.Date("2024-01-01")
+  end.date <- as.Date("2025-01-01")
   roster |>
-    filter((is.na(Status) | Status != "Left") & `Date joined` < as.Date("2025-01-01")) |>
-    transmute(athlete = Name) |>
+    filter(`Date joined` < end.date & (is.na(`Date left`) | `Date left` >= start.date)) |>
+    transmute(
+      athlete = Name,
+      from = as.Date(ifelse(`Date joined` < start.date, start.date, `Date joined`)),
+      to = as.Date(ifelse(`Date left` >= end.date | is.na(`Date left`), end.date, `Date left`))
+    ) |>
+    group_by(athlete) |>
+    summarise(from = min(from), to = max(to)) |>
+    mutate(days = to - from, expansion_factor = 366 / as.numeric(to - from)) |>
     left_join(races.by.athlete) |>
-    mutate(n = ifelse(is.na(n), 0, n))
+    mutate(n = ifelse(is.na(n), 0, n)) |>
+    mutate(expanded_n = n * expansion_factor)
 }
 
 plot <- function (data) {
-  ggplot(data, aes(x = n)) +
-    geom_histogram() +
-    ggtitle("Distribution of tims raced in 2024") +
+  ggplot(data, aes(x = expanded_n)) +
+    geom_histogram(boundary = 0) +
+    ggtitle("Distribution of times raced in 2024") +
     xlab("Number of races") +
-    ylab("Count of teammats")
+    ylab("Count of teammates")
 }
 
 main <- function (argv = c()) {
   performances <- fetch.data("--cache" %in% argv)
   roster <- fetch.roster("--cache" %in% argv)
-  count.races(performances, roster) |> plot()
+  count.races(performances, roster) |>
+    plot()
 }
