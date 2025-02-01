@@ -29,7 +29,7 @@ minutes.as.POSIXct <- function (minutes) {
   as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
 }
 
-fetch.data <- function (cache) {
+fetch.data <- function (cache = FALSE) {
   cached <- "Performances.csv"
   if (cache) {
     return(read.csv(cached, check.names = FALSE))
