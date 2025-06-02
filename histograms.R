@@ -6,6 +6,9 @@ library(lubridate)
 library(stringr)
 
 parse.chip.time <- function (chip.time) {
+  if (substr(chip.time, nchar(chip.time), nchar(chip.time)) == "g") {
+    chip.time <- substr(chip.time, 1, nchar(chip.time) - 1)
+  }
   if (str_count(chip.time, ":") == 1) {
     chip.time <- paste0("0:", chip.time)
   }
@@ -35,8 +38,8 @@ fetch.data <- function (cache = FALSE) {
     return(read.csv(cached, check.names = FALSE))
   }
   columns <- data.frame(
-    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
-    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
+    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Use this time", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
+    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "c",             "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
   )
   performances <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
@@ -77,7 +80,7 @@ main <- function (argv = c()) {
   year.of.interest <- argv[[1]]
   performances <- fetch.data("--cache" %in% argv)
   finish.times <- performances |>
-    filter(Discipline == "Road" & !(`Gun Time` %in% c("TBD", "Not found"))) |>
+    filter(Discipline == "Road" & !(`Use this time` %in% c("TBD", "Not found"))) |>
     transmute(
       athlete = Athlete,
       race = Race,
