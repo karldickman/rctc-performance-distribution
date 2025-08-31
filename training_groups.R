@@ -1,5 +1,6 @@
 library(dplyr)
 library(fuzzyjoin)
+library(ggplot2)
 library(tidyr)
 
 source("histograms.R")
@@ -111,5 +112,8 @@ main <- function (argv = c()) {
     mutate(vdot = interpolate(pace_min_mi, pace_min_mi.fast, vdot.fast, pace_min_mi.slow, vdot.slow)) |>
     select(!c(distance_mi, distance_mi.vdot.x, pace_min_mi.lower.x, pace_min_mi.upper.x, distance_mi.vdot.y, pace_min_mi.lower.y, pace_min_mi.upper.y, vdot.lower.x, vdot.lower.y, vdot.upper.x, vdot.upper.y, pace_min_mi.fast, pace_min_mi.slow, vdot.fast, vdot.slow))
   performances |>
-    inner_join(interpolated.vdot)
+    inner_join(interpolated.vdot) |>
+    ggplot(aes(x = date, y = vdot, group = athlete)) +
+    geom_point() +
+    scale_x_date()
 }

@@ -37,7 +37,11 @@ minutes.as.POSIXct <- function (minutes) {
 fetch.data <- function (cache = FALSE) {
   cached <- "Performances.csv"
   if (cache) {
-    return(read.csv(cached, check.names = FALSE))
+    data <- cached |>
+      read.csv(check.names = FALSE) |>
+      as_tibble() |>
+      mutate(Date = as.Date(Date))
+    return(data)
   }
   columns <- data.frame(
     name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Use this time", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
