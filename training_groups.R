@@ -3,6 +3,7 @@ library(fuzzyjoin)
 library(ggplot2)
 library(tidyr)
 
+source("../distance-matrix/attendance.R")
 source("histograms.R")
 source("vdot.R")
 
@@ -11,7 +12,8 @@ fetch.performances <- function (cache = FALSE) {
     filter(
       Gender != "Exclude"
       & (is.na(Flag) | Flag != "Relay")
-      & Discipline %in% c("Road", "Track")
+      & !(Distance %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
+      & !(Discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile"))
       & !(`Use this time` %in% c("TBD", "Not found"))
       & `Use this time` != "DNF"
     ) |>
@@ -20,6 +22,7 @@ fetch.performances <- function (cache = FALSE) {
       race = Race,
       date = Date,
       distance_label = Distance,
+      discipline = Discipline,
       distance_km = Kilometers,
       finish_time = `Use this time`
     ) |>
@@ -45,7 +48,7 @@ interpolate <- function (x, x1, y1, x2, y2) {
 
 interpolate.vdot <- function (performances, vdot) {
   lower.bounds <- performances |>
-    select(athlete, race, date, distance_mi, pace_min_mi) |>
+    select(athlete, race, date, distance_mi, discipline, pace_min_mi) |>
     fuzzy_left_join(vdot, by = c("distance_mi" = "distance_mi"), match_fun = list(`>=`)) |>
     rename(
       distance_mi = distance_mi.x,
@@ -71,7 +74,7 @@ interpolate.vdot <- function (performances, vdot) {
       .groups = "drop"
     )
   upper.bounds <- performances |>
-    select(athlete, race, date, distance_mi, pace_min_mi) |>
+    select(athlete, race, date, distance_mi, discipline, pace_min_mi) |>
     fuzzy_left_join(vdot, by = c("distance_mi" = "distance_mi"), match_fun = list(`<=`)) |>
     rename(
       distance_mi = distance_mi.x,
@@ -119,15 +122,42 @@ plot.vdot.over.time <- function (data) {
     scale_x_date()
 }
 
+training.group.assignments <- function (data, roster) {
+  training.groups <- tibble(
+    group = c("A", "B", "C", "D", "E", "F", "G"),
+    from = c(30,  36,  42,  47,  52,  56,  61),
+    to =   c(36,  42,  47,  52,  56,  61,  80)
+  )
+  most.recent.vdot <- data |>
+    group_by(athlete) |>
+    filter(date == max(date)) |>
+    ungroup() |>
+    mutate(ago = as.numeric(Sys.Date() - date)) |>
+    select(athlete, date, ago, race, distance = distance_label, finish_time, vdot)
+  roster |>
+    left_join(most.recent.vdot, by = join_by(athlete)) |>
+    left_join(training.groups, by = join_by(vdot >= from, vdot <= to)) |>
+    arrange(vdot)
+}
+
+newbie.performances <- function () {
+  read_csv("newbies.csv", col_types = "ccDcdcdc")
+}
+
 main <- function (argv = c()) {
   cache = "--cache" %in% argv
+  roster <- fetch.roster(cache) |>
+    filter(Status == "Member" & is.na(To)) |>
+    select(athlete = Name)
   performances <- fetch.performances(cache) |>
-    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
+    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3)
+  performances <- performances |>
+    bind_rows(newbie.performances()) |>
     mutate(pace_min_mi = minutes / distance_mi)
   vdot <- fetch.vdot.data(cache) |>
     prepare.vdot.data() |>
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   interpolate.vdot(performances, vdot) |>
-    plot.vdot.over.time()
+    training.group.assignments(roster)
 }
