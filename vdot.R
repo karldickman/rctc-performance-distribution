@@ -11,7 +11,7 @@ fetch.vdot.data <- function (cache = FALSE) {
   vdot <- read_sheet(
     "https://docs.google.com/spreadsheets/d/153Sc67IzEqo6bNfHlSmr-ECfaA2oi1u2obvzgNmVA3E/",
     "Equivalent Paces",
-    "B1:J301"
+    "B1:J361"
   )
   write.csv(vdot, cached, row.names = FALSE)
   vdot

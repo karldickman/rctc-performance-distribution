@@ -46,9 +46,11 @@ interpolate <- function (x, x1, y1, x2, y2) {
 main <- function (argv = c()) {
   cache = "--cache" %in% argv
   performances <- fetch.performances(cache) |>
+    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
     mutate(pace_min_mi = minutes / distance_mi)
   vdot <- fetch.vdot.data(cache) |>
     prepare.vdot.data() |>
+    filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   lower.bounds <- performances |>
     select(athlete, race, date, distance_mi, pace_min_mi) |>
@@ -61,7 +63,7 @@ main <- function (argv = c()) {
     ) |>
     group_by(distance_mi) |>
     filter(distance_mi.vdot == max(distance_mi.vdot)) |>
-    group_by(athlete, race, date) |>
+    group_by(athlete, race, date, distance_mi) |>
     filter(
       pace_min_mi.vdot == max(pace_min_mi.vdot[pace_min_mi.vdot <= pace_min_mi], na.rm = TRUE)
       | pace_min_mi.vdot == min(pace_min_mi.vdot[pace_min_mi.vdot >= pace_min_mi], na.rm = TRUE)
@@ -73,7 +75,8 @@ main <- function (argv = c()) {
       pace_min_mi.lower = min(pace_min_mi.vdot),
       pace_min_mi.upper = max(pace_min_mi.vdot),
       vdot.lower = max(vdot),
-      vdot.upper = min(vdot)
+      vdot.upper = min(vdot),
+      .groups = "drop"
     )
   upper.bounds <- performances |>
     select(athlete, race, date, distance_mi, pace_min_mi) |>
@@ -86,21 +89,23 @@ main <- function (argv = c()) {
     ) |>
     group_by(distance_mi) |>
     filter(distance_mi.vdot == min(distance_mi.vdot)) |>
-    group_by(athlete, race, date) |>
+    group_by(athlete, race, date, distance_mi) |>
     filter(
       pace_min_mi.vdot == max(pace_min_mi.vdot[pace_min_mi.vdot <= pace_min_mi], na.rm = TRUE)
       | pace_min_mi.vdot == min(pace_min_mi.vdot[pace_min_mi.vdot >= pace_min_mi], na.rm = TRUE)
     ) |>
     summarise(
       distance_mi = first(distance_mi),
+      pace_min_mi = first(pace_min_mi),
       distance_mi.vdot = first(distance_mi.vdot),
       pace_min_mi.lower = min(pace_min_mi.vdot),
       pace_min_mi.upper = max(pace_min_mi.vdot),
       vdot.lower = max(vdot),
-      vdot.upper = min(vdot)
+      vdot.upper = min(vdot),
+      .groups = "drop"
     )
   interpolated.vdot <- lower.bounds |>
-    left_join(upper.bounds, by = join_by(athlete, race, date, distance_mi)) |>
+    left_join(select(upper.bounds, !pace_min_mi), by = join_by(athlete, race, date, distance_mi)) |>
     mutate(
       pace_min_mi.fast = interpolate(distance_mi, distance_mi.vdot.x, pace_min_mi.lower.x, distance_mi.vdot.y, pace_min_mi.lower.y),
       pace_min_mi.slow = interpolate(distance_mi, distance_mi.vdot.x, pace_min_mi.upper.x, distance_mi.vdot.y, pace_min_mi.upper.y)
@@ -110,9 +115,9 @@ main <- function (argv = c()) {
       vdot.slow = interpolate(pace_min_mi.slow, pace_min_mi.upper.x, vdot.upper.x, pace_min_mi.upper.y, vdot.upper.y)
     ) |>
     mutate(vdot = interpolate(pace_min_mi, pace_min_mi.fast, vdot.fast, pace_min_mi.slow, vdot.slow)) |>
-    select(!c(distance_mi, distance_mi.vdot.x, pace_min_mi.lower.x, pace_min_mi.upper.x, distance_mi.vdot.y, pace_min_mi.lower.y, pace_min_mi.upper.y, vdot.lower.x, vdot.lower.y, vdot.upper.x, vdot.upper.y, pace_min_mi.fast, pace_min_mi.slow, vdot.fast, vdot.slow))
+    select(!c(distance_mi.vdot.x, pace_min_mi.lower.x, pace_min_mi.upper.x, distance_mi.vdot.y, pace_min_mi.lower.y, pace_min_mi.upper.y, vdot.lower.x, vdot.lower.y, vdot.upper.x, vdot.upper.y, pace_min_mi.fast, pace_min_mi.slow, vdot.fast, vdot.slow))
   performances |>
-    inner_join(interpolated.vdot) |>
+    left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi)) |>
     ggplot(aes(x = date, y = vdot, group = athlete)) +
     geom_point() +
     scale_x_date()
