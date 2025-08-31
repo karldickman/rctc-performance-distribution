@@ -43,15 +43,7 @@ interpolate <- function (x, x1, y1, x2, y2) {
   m * (x - x1) + y1
 }
 
-main <- function (argv = c()) {
-  cache = "--cache" %in% argv
-  performances <- fetch.performances(cache) |>
-    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
-    mutate(pace_min_mi = minutes / distance_mi)
-  vdot <- fetch.vdot.data(cache) |>
-    prepare.vdot.data() |>
-    filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
-    select(!minutes)
+interpolate.vdot <- function (performances, vdot) {
   lower.bounds <- performances |>
     select(athlete, race, date, distance_mi, pace_min_mi) |>
     fuzzy_left_join(vdot, by = c("distance_mi" = "distance_mi"), match_fun = list(`>=`)) |>
@@ -117,8 +109,25 @@ main <- function (argv = c()) {
     mutate(vdot = interpolate(pace_min_mi, pace_min_mi.fast, vdot.fast, pace_min_mi.slow, vdot.slow)) |>
     select(!c(distance_mi.vdot.x, pace_min_mi.lower.x, pace_min_mi.upper.x, distance_mi.vdot.y, pace_min_mi.lower.y, pace_min_mi.upper.y, vdot.lower.x, vdot.lower.y, vdot.upper.x, vdot.upper.y, pace_min_mi.fast, pace_min_mi.slow, vdot.fast, vdot.slow))
   performances |>
-    left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi)) |>
+    left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi))
+}
+
+plot.vdot.over.time <- function (data) {
+  data |>
     ggplot(aes(x = date, y = vdot, group = athlete)) +
     geom_point() +
     scale_x_date()
+}
+
+main <- function (argv = c()) {
+  cache = "--cache" %in% argv
+  performances <- fetch.performances(cache) |>
+    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
+    mutate(pace_min_mi = minutes / distance_mi)
+  vdot <- fetch.vdot.data(cache) |>
+    prepare.vdot.data() |>
+    filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
+    select(!minutes)
+  interpolate.vdot(performances, vdot) |>
+    plot.vdot.over.time()
 }
