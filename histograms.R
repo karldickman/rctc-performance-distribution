@@ -9,7 +9,9 @@ parse.chip.time <- function (chip.time) {
   if (substr(chip.time, nchar(chip.time), nchar(chip.time)) == "g") {
     chip.time <- substr(chip.time, 1, nchar(chip.time) - 1)
   }
-  if (str_count(chip.time, ":") == 1) {
+  if (str_count(chip.time, ":") == 0) {
+    chip.time <- paste0("0:00", chip.time)
+  } else if (str_count(chip.time, ":") == 1) {
     chip.time <- paste0("0:", chip.time)
   }
   as.numeric(lubridate::hms(chip.time), "mins")
