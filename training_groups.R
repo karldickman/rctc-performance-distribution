@@ -1,6 +1,7 @@
 library(dplyr)
 library(fuzzyjoin)
 library(ggplot2)
+library(slider)
 library(tidyr)
 
 source("../distance-matrix/attendance.R")
@@ -115,11 +116,26 @@ interpolate.vdot <- function (performances, vdot) {
     left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi))
 }
 
-plot.vdot.over.time <- function (data) {
-  data |>
+plot.vdot.over.time <- function (data, athlete.name) {
+  athlete.data <- data |>
+    filter(athlete == athlete.name & discipline %in% c("Road", "Track"))
+  min.vdot <- floor(min(athlete.data$vdot))
+  max.vdot <- ceiling(max(athlete.data$vdot))
+  vdot.breaks <- min.vdot:max.vdot
+  athlete.data |>
+    mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(90))) |>
     ggplot(aes(x = date, y = vdot, group = athlete)) +
-    geom_point() +
-    scale_x_date()
+    geom_line(aes(y = rolling_avg), linetype = "dashed") +
+    geom_point(aes(col = discipline)) +
+    scale_x_date(date_breaks = "3 month", date_labels = "%Y-%m") +
+    scale_y_continuous(breaks = vdot.breaks) +
+    labs(
+      title = paste0(athlete.name, "'s VDOT since joining Rose City"),
+      color = "Discipline"
+    ) +
+    xlab("Date") +
+    ylab("VDOT") +
+    theme(legend.position = "bottom")
 }
 
 training.group.assignments <- function (data, roster) {
@@ -159,5 +175,6 @@ main <- function (argv = c()) {
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   interpolate.vdot(performances, vdot) |>
-    training.group.assignments(roster)
+    #training.group.assignments(roster)
+    plot.vdot.over.time("Karl Dickman")
 }
