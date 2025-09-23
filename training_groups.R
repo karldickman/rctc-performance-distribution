@@ -116,14 +116,14 @@ interpolate.vdot <- function (performances, vdot) {
     left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi))
 }
 
-plot.vdot.over.time <- function (data, athlete.name) {
+plot.vdot.over.time <- function (data, athlete.name, lookback.days) {
   athlete.data <- data |>
-    filter(athlete == athlete.name & discipline %in% c("Road", "Track"))
+    filter(athlete == athlete.name)
   min.vdot <- floor(min(athlete.data$vdot))
   max.vdot <- ceiling(max(athlete.data$vdot))
   vdot.breaks <- min.vdot:max.vdot
   athlete.data |>
-    mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(90))) |>
+    mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(lookback.days))) |>
     ggplot(aes(x = date, y = vdot, group = athlete)) +
     geom_line(aes(y = rolling_avg), linetype = "dashed") +
     geom_point(aes(col = discipline)) +
@@ -138,22 +138,33 @@ plot.vdot.over.time <- function (data, athlete.name) {
     theme(legend.position = "bottom")
 }
 
-training.group.assignments <- function (data, roster) {
+training.group.assignments <- function (data, roster, lookback.days) {
+  lookback.date <- Sys.Date() - lookback.days
   training.groups <- tibble(
-    group = c("A", "B", "C", "D", "E", "F", "G"),
-    from = c(30,  36,  42,  47,  52,  56,  61),
-    to =   c(36,  42,  47,  52,  56,  61,  80)
+    group = c("A", "B", "C", "D", "E", "F", "G", "H"),
+    from =  c(30,  36,  42,  47,  52,  56,  61,  65),
+    to =    c(36,  42,  47,  52,  56,  61,  65,  100)
   )
-  most.recent.vdot <- data |>
+  last.races <- data |>
     group_by(athlete) |>
-    filter(date == max(date)) |>
-    ungroup() |>
-    mutate(ago = as.numeric(Sys.Date() - date)) |>
-    select(athlete, date, ago, race, distance = distance_label, finish_time, vdot)
+    summarise(last_race = max(date))
+  relevant.data <- data |>
+    left_join(last.races, by = join_by(athlete)) |>
+    filter(date >= lookback.date | date == last_race) |>
+    select(!last_race)
+  recent.vdot <- relevant.data |>
+    group_by(athlete) |>
+    summarise(races = n(), last_race = max(date), best_vdot = max(vdot), median_vdot = median(vdot)) |>
+    mutate(days_ago = as.numeric(Sys.Date() - last_race)) |>
+    select(athlete, races, last_race, days_ago, best_vdot, median_vdot)
   roster |>
-    left_join(most.recent.vdot, by = join_by(athlete)) |>
-    left_join(training.groups, by = join_by(vdot >= from, vdot <= to)) |>
-    arrange(vdot)
+    left_join(recent.vdot, by = join_by(athlete)) |>
+    left_join(training.groups, by = join_by(best_vdot >= from, best_vdot <= to)) |>
+    select(!c(from, to)) |>
+    left_join(data, by = join_by(athlete, best_vdot == vdot)) |>
+    select(!c(distance_mi, minutes, pace_min_mi)) |>
+    rename(best_race = race) |>
+    arrange(best_vdot)
 }
 
 newbie.performances <- function () {
@@ -162,6 +173,7 @@ newbie.performances <- function () {
 
 main <- function (argv = c()) {
   cache = "--cache" %in% argv
+  lookback.days <- 90
   roster <- fetch.roster(cache) |>
     filter(Status == "Member" & is.na(To)) |>
     select(athlete = Name)
@@ -175,6 +187,7 @@ main <- function (argv = c()) {
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   interpolate.vdot(performances, vdot) |>
-    #training.group.assignments(roster)
-    plot.vdot.over.time("Karl Dickman")
+    filter(discipline %in% c("Road", "Track")) |>
+    training.group.assignments(roster, lookback.days)
+    #plot.vdot.over.time("Karl Dickman")
 }
