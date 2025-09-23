@@ -154,9 +154,15 @@ training.group.assignments <- function (data, roster, lookback.days) {
     select(!last_race)
   recent.vdot <- relevant.data |>
     group_by(athlete) |>
-    summarise(races = n(), last_race = max(date), best_vdot = max(vdot), median_vdot = median(vdot)) |>
+    summarise(
+      races = n(),
+      last_race = max(date),
+      best_vdot = max(vdot),
+      median_vdot = median(vdot),
+      slope = 30 * coef(lm(vdot ~ date))[[2]]
+    ) |>
     mutate(days_ago = as.numeric(Sys.Date() - last_race)) |>
-    select(athlete, races, last_race, days_ago, best_vdot, median_vdot)
+    select(athlete, races, last_race, days_ago, best_vdot, median_vdot, slope)
   roster |>
     left_join(recent.vdot, by = join_by(athlete)) |>
     left_join(training.groups, by = join_by(best_vdot >= from, best_vdot <= to)) |>
