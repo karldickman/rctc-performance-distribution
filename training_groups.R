@@ -173,6 +173,11 @@ training.group.assignments <- function (data, roster, lookback.days) {
     arrange(best_vdot)
 }
 
+convert.xc.times <- function (data) {
+  data |>
+    mutate(pace_min_mi = ifelse(discipline == "XC", pace_min_mi - 10/60, pace_min_mi))
+}
+
 newbie.performances <- function () {
   read_csv("newbies.csv", col_types = "ccDcdcdc")
 }
@@ -192,8 +197,10 @@ main <- function (argv = c()) {
     prepare.vdot.data() |>
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
-  interpolate.vdot(performances, vdot) |>
-    filter(discipline %in% c("Road", "Track")) |>
+  performances |>
+    convert.xc.times() |>
+    interpolate.vdot(vdot) |>
+    filter(discipline %in% c("Road", "Track", "XC")) |>
     training.group.assignments(roster, lookback.days)
-    #plot.vdot.over.time("Karl Dickman")
+    #plot.vdot.over.time("Karl Dickman", lookback.days)
 }
