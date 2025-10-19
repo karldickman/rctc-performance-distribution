@@ -4,9 +4,8 @@ library(ggplot2)
 source("training_groups.R")
 
 main <- function (argv = c()) {
-  performances <- fetch.performances("--cache" %in% argv)
-  performances <- performances |>
-    filter(!(discipline %in% c("Duathlon", "Triathlon", "Beer mile", "Skimo")))
+  performances <- fetch.performances("--cache" %in% argv) |>
+    filter(!(discipline %in% c("Duathlon", "Triathlon", "Skimo")))
   performances |>
     ggplot(aes(x = distance_mi, y = minutes / distance_mi)) +
     geom_jitter(width = 0.01, size = 0.5, alpha = 0.2) +
