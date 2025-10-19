@@ -10,7 +10,7 @@ parse.chip.time <- function (chip.time) {
     chip.time <- substr(chip.time, 1, nchar(chip.time) - 1)
   }
   if (str_count(chip.time, ":") == 0) {
-    chip.time <- paste0("0:00", chip.time)
+    chip.time <- paste0("0:00:", chip.time)
   } else if (str_count(chip.time, ":") == 1) {
     chip.time <- paste0("0:", chip.time)
   }
