@@ -6,8 +6,7 @@ source("training_groups.R")
 main <- function (argv = c()) {
   performances <- fetch.performances("--cache" %in% argv)
   performances <- performances |>
-    filter(!(discipline %in% c("Duathlon", "Triathlon", "Beer mile", "Skimo"))) |>
-    filter(!str_count(distance_label, " hr") & distance_label != "Run til you drop")
+    filter(!(discipline %in% c("Duathlon", "Triathlon", "Beer mile", "Skimo")))
   performances |>
     ggplot(aes(x = distance_mi, y = minutes / distance_mi)) +
     geom_jitter(width = 0.01, size = 0.5, alpha = 0.2) +

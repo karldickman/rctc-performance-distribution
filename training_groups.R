@@ -11,15 +11,28 @@ source("vdot.R")
 fetch.performances <- function (cache = FALSE) {
   fetch.data(cache) |>
     filter(
-      Gender != "Exclude"
-      & (is.na(Flag) | Flag != "Relay")
-      & !(Distance %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
-      & !(Discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
-      & !(`Use this time` %in% c("TBD", "Not found"))
-      & `Use this time` != "DNF"
+      (is.na(Flag) | !(Flag %in% c("Future", "Relay")))
+      & !(`Use this time` %in% c("TBD", "Not found", "DNF"))
+    ) |>
+    mutate(
+      Kilometers = ifelse(
+        str_count(Distance, " hr") > 0 | Distance == "Run til you drop",
+        suppressWarnings(as.numeric(gsub(" mi", "", `Use this time`))) * 1.609334,
+        Kilometers
+      ),
+      `Use this time` = ifelse(
+        str_count(Distance, " hr") > 0,
+        paste0(gsub(" hr", "", Distance), ":00:00"),
+        ifelse(
+          Distance == "Run til you drop",
+          paste0(gsub(" laps", "", `Gun Time`), ":00:00"),
+          `Use this time`
+        )
+      )
     ) |>
     select(
       athlete = Athlete,
+      gender = Gender,
       race = Race,
       date = Date,
       distance_label = Distance,
@@ -27,6 +40,7 @@ fetch.performances <- function (cache = FALSE) {
       distance_km = Kilometers,
       finish_time = `Use this time`
     ) |>
+    mutate(finish_time = gsub(" \\(Strava\\)", "", finish_time)) |>
     mutate(
       distance_mi = distance_km / 1.609334,
       minutes = sapply(finish_time, parse.chip.time)
@@ -189,6 +203,11 @@ main <- function (argv = c()) {
     filter(Status == "Member" & is.na(To)) |>
     select(athlete = Name)
   performances <- fetch.performances(cache) |>
+    filter(
+      gender != "Exclude"
+      & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
+      & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
+    ) |>
     filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3)
   performances <- performances |>
     bind_rows(newbie.performances()) |>
