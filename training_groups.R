@@ -14,7 +14,7 @@ fetch.performances <- function (cache = FALSE) {
       Gender != "Exclude"
       & (is.na(Flag) | Flag != "Relay")
       & !(Distance %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
-      & !(Discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile"))
+      & !(Discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
       & !(`Use this time` %in% c("TBD", "Not found"))
       & `Use this time` != "DNF"
     ) |>
