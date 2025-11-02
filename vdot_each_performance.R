@@ -8,6 +8,7 @@ source("histograms.R")
 source("vdot.R")
 
 fetch.performances <- function (cache = FALSE) {
+  exclude <- read_csv("exclude_races.csv")
   fetch.data(cache) |>
     filter(
       (is.na(Flag) | !(Flag %in% c("Future", "Relay")))
@@ -50,8 +51,10 @@ fetch.performances <- function (cache = FALSE) {
       & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
       & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
     ) |>
+    mutate(discipline = ifelse(discipline == "Indoor", "Track", discipline)) |>
     filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
-    mutate(pace_min_mi = minutes / distance_mi)
+    mutate(pace_min_mi = minutes / distance_mi) |>
+    anti_join(exclude, by = join_by(athlete, race, date, distance_label, discipline))
 }
 
 slope <- function (x1, y1, x2, y2) {
@@ -136,7 +139,7 @@ interpolate.vdot <- function (performances, vdot) {
     left_join(select(interpolated.vdot, !c(pace_min_mi)), by = join_by(athlete, race, date, distance_mi))
 }
 
-plot.vdot.over.time <- function (data, athlete.name, lookback.days) {
+plot.individual.vdot.over.time <- function (data, athlete.name, lookback.days) {
   athlete.data <- data |>
     filter(athlete == athlete.name)
   min.vdot <- floor(min(athlete.data$vdot))
@@ -151,6 +154,26 @@ plot.vdot.over.time <- function (data, athlete.name, lookback.days) {
     scale_y_continuous(breaks = vdot.breaks) +
     labs(
       title = paste0(athlete.name, "'s VDOT since joining Rose City"),
+      x = "Date",
+      y = "VDOT",
+      color = "Discipline"
+    ) +
+    theme(legend.position = "bottom")
+}
+
+plot.team.vdot.over.time <- function (data, lookback.days) {
+  min.vdot <- floor(min(data$vdot))
+  max.vdot <- ceiling(max(data$vdot))
+  data |>
+    arrange(date) |>
+    mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(lookback.days))) |>
+    ggplot(aes(x = date, y = vdot)) +
+    geom_point(aes(col = discipline), size = 0.5) +
+    geom_line(aes(y = rolling_avg)) +
+    geom_hline(yintercept = c(37.9, 55.3, 63.2), linetype = "dashed") +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    labs(
+      title = paste0("All VDOTs since joining Rose City"),
       x = "Date",
       y = "VDOT",
       color = "Discipline"
@@ -174,5 +197,6 @@ main <- function (argv = c()) {
   performances |>
     convert.xc.times() |>
     interpolate.vdot(vdot) |>
-    plot.vdot.over.time("Karl Dickman", lookback.days)
+    #plot.vdot.over.time("Karl Dickman", lookback.days)
+    plot.team.vdot.over.time(lookback.days)
 }
