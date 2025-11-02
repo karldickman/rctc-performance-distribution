@@ -1,3 +1,5 @@
+library(readr)
+
 source("histograms.R")
 
 fetch.roster <- function (cache = FALSE) {
@@ -6,8 +8,8 @@ fetch.roster <- function (cache = FALSE) {
     return(read_csv(file.path))
   }
   columns <- data.frame(
-    name = c("Name", "Alternate Names", "Gender", "Birthday", "Earliest BDay", "Latest BDay", "BDay Range", "Date Joined", "Date Left", "Previous Date Joined", "Previous Date Left", "Class", "Years on team", "Class 2", "State Date"),
-    type = c("c",    "c",               "c",      "D",        "D",             "D",           "d",          "D",            "D",        "D",                    "D",                   "c",    "d",             "c",       "D")
+    name = c("Name", "Alternate Names", "Gender", "Birthday", "Earliest BDay", "Latest BDay", "BDay Range", "Date Joined", "Date Left", "Previous Date Joined", "Previous Date Left", "Class", "Years on team"),
+    type = c("c",    "c",               "c",      "D",        "D",             "D",           "d",          "D",            "D",        "D",                    "D",                   "c",    "d"            )
   )
   data <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
@@ -31,11 +33,11 @@ count.races <- function (performances, roster) {
       distance = gsub(" k", "k", Distance),
       chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
     ) |>
-    filter(year == 2024 & !(gender %in% c("Female team", "Male team", "Male Team", "Female Team"))) |>
+    filter(year == 2025 & !(gender %in% c("Exclude", "Female team", "Male team", "Male Team", "Female Team"))) |>
     group_by(athlete) |>
     tally()
-  start.date <- as.Date("2024-01-01")
-  end.date <- as.Date("2025-01-01")
+  start.date <- as.Date("2025-01-01")
+  end.date <- as.Date("2026-01-01")
   roster |>
     filter(`Date joined` < end.date & (is.na(`Date left`) | `Date left` >= start.date)) |>
     transmute(
@@ -46,17 +48,20 @@ count.races <- function (performances, roster) {
     group_by(athlete) |>
     summarise(from = min(from), to = max(to)) |>
     mutate(days = to - from, expansion_factor = 366 / as.numeric(to - from)) |>
-    left_join(races.by.athlete) |>
+    left_join(races.by.athlete, by = join_by(athlete)) |>
     mutate(n = ifelse(is.na(n), 0, n)) |>
     mutate(expanded_n = n * expansion_factor)
 }
 
 plot <- function (data) {
-  ggplot(data, aes(x = expanded_n)) +
+  data |>
+    ggplot(aes(x = expanded_n)) +
     geom_histogram(boundary = 0) +
-    ggtitle("Distribution of times raced in 2024") +
-    xlab("Number of races") +
-    ylab("Count of teammates")
+    labs(
+      title = "Distribution of times raced in 2025",
+      x = "Number of races",
+      y = "Count of teammates"
+    )
 }
 
 main <- function (argv = c()) {
