@@ -22,7 +22,7 @@ bar.viz <- function (data) {
       Distance = factor(Distance, levels = distances),
       training_group = factor(ifelse(
         Kilometers < 1.5,
-        "Sprints",
+        "800/1500",
         ifelse(
           Kilometers < 15,
           "5k/10k",
@@ -32,7 +32,7 @@ bar.viz <- function (data) {
             "Ultra"
           )
         )
-      ), levels = c("Sprints", "5k/10k", "Marathon/Half", "Ultra"))
+      ), levels = c("800/1500", "5k/10k", "Marathon/Half", "Ultra"))
     ) |>
     ggplot(aes(x = year(Date), fill = training_group)) +
     geom_bar(position = "dodge") +
