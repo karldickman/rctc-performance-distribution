@@ -23,7 +23,7 @@ fetch.roster <- function (cache = FALSE) {
   data
 }
 
-count.races <- function (performances, roster, year.of.interest) {
+count.races.in.year <- function (performances, roster, year.of.interest) {
   races.by.athlete <- performances |>
     filter(
       (is.na(flag) | flag != "Relay")
@@ -51,17 +51,42 @@ count.races <- function (performances, roster, year.of.interest) {
         to < end.date,
         "Former",
         "Current"
-      )
+      ),
+      year = year.of.interest
     )
 }
 
-plot <- function (data, year) {
+count.races <- function (data, roster) {
+  count.2017 <- count.races.in.year(data, roster, 2017)
+  count.2018 <- count.races.in.year(data, roster, 2018)
+  count.2019 <- count.races.in.year(data, roster, 2019)
+  count.2020 <- count.races.in.year(data, roster, 2020)
+  count.2021 <- count.races.in.year(data, roster, 2021)
+  count.2022 <- count.races.in.year(data, roster, 2022)
+  count.2023 <- count.races.in.year(data, roster, 2023)
+  count.2024 <- count.races.in.year(data, roster, 2024)
+  count.2025 <- count.races.in.year(data, roster, 2025)
+  bind_rows(
+    count.2017,
+    count.2018,
+    count.2019,
+    count.2020,
+    count.2021,
+    count.2022,
+    count.2023,
+    count.2024,
+    count.2025
+  )
+}
+
+plot <- function (data) {
   data |>
     ggplot(aes(x = expanded_n, fill = factor(membership_status, levels = c("Former", "Current")))) +
     geom_histogram(boundary = 0) +
+    facet_wrap(~ year) +
     scale_fill_discrete(guide = guide_legend(reverse = TRUE)) +
     labs(
-      title = paste("Distribution of times raced in", year),
+      title = "Distribution of times raced per year",
       x = "Number of races",
       y = "Count of teammates",
       fill = "Membership status"
@@ -69,10 +94,10 @@ plot <- function (data, year) {
     theme(legend.position = "bottom")
 }
 
-main <- function (year = 2025, cache = FALSE) {
+main <- function (cache = FALSE) {
   performances <- get_performance_data(cache)
   roster <- fetch.roster(cache) |>
     clean_names()
-  count.races(performances, roster, year) |>
-    plot(year)
+  count.races(performances, roster) |>
+    plot()
 }
