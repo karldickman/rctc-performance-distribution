@@ -10,7 +10,14 @@ circle.viz <- function (data) {
     tally() |>
     ggplot(aes(x = date, y = kilometers, size = n)) +
     geom_point(alpha = 0.3) +
-    scale_y_log10()
+    scale_y_log10() +
+    labs(
+      title = "Popularity of race distances",
+      x = "Date",
+      y = "Race distance (km), log scale",
+      size = "Participants"
+    ) +
+    theme(legend.position = "bottom")
 }
 
 bar.viz <- function (data) {
