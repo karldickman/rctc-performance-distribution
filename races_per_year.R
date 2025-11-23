@@ -1,11 +1,13 @@
+library(dplyr)
+library(janitor)
 library(readr)
 
-source("histograms.R")
+source("data.R")
 
 fetch.roster <- function (cache = FALSE) {
   file.path <- "roster.csv"
   if (cache & file.exists(file.path)) {
-    return(read_csv(file.path))
+    return(read_csv(file.path, show_col_types = FALSE))
   }
   columns <- data.frame(
     name = c("Name", "Alternate Names", "Gender", "Birthday", "Earliest BDay", "Latest BDay", "BDay Range", "Date Joined", "Date Left", "Previous Date Joined", "Previous Date Left", "Class", "Years on team"),
@@ -21,29 +23,22 @@ fetch.roster <- function (cache = FALSE) {
   data
 }
 
-count.races <- function (performances, roster) {
+count.races <- function (performances, roster, year.of.interest = 2025) {
   races.by.athlete <- performances |>
-    filter(is.na(Flag) | Flag != "Relay") |>
-    transmute(
-      athlete = Athlete,
-      race = Race,
-      gender = Gender,
-      year = year(Date),
-      date = ymd(Date),
-      distance = gsub(" k", "k", Distance),
-      chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
+    filter(
+      (is.na(flag) | flag != "Relay")
+      & year == year.of.interest
     ) |>
-    filter(year == 2025 & !(gender %in% c("Exclude", "Female team", "Male team", "Male Team", "Female Team"))) |>
     group_by(athlete) |>
     tally()
-  start.date <- as.Date("2025-01-01")
-  end.date <- as.Date("2026-01-01")
+  start.date <- as.Date(paste0(year.of.interest, "-01-01"))
+  end.date <- as.Date(paste0(year.of.interest + 1, "-01-01"))
   roster |>
-    filter(`Date joined` < end.date & (is.na(`Date left`) | `Date left` >= start.date)) |>
+    filter(date_joined < end.date & (is.na(date_left) | date_left >= start.date)) |>
     transmute(
-      athlete = Name,
-      from = as.Date(ifelse(`Date joined` < start.date, start.date, `Date joined`)),
-      to = as.Date(ifelse(`Date left` >= end.date | is.na(`Date left`), end.date, `Date left`))
+      athlete = name,
+      from = as.Date(ifelse(date_joined< start.date, start.date, date_joined)),
+      to = as.Date(ifelse(date_left >= end.date | is.na(date_left), end.date, date_left))
     ) |>
     group_by(athlete) |>
     summarise(from = min(from), to = max(to)) |>
@@ -64,9 +59,10 @@ plot <- function (data) {
     )
 }
 
-main <- function (argv = c()) {
-  performances <- fetch.data("--cache" %in% argv)
-  roster <- fetch.roster("--cache" %in% argv)
+main <- function (cache = FALSE) {
+  performances <- get_performance_data(cache)
+  roster <- fetch.roster(cache) |>
+    clean_names()
   count.races(performances, roster) |>
     plot()
 }
