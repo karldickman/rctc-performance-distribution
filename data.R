@@ -47,13 +47,28 @@ process_performance_data <- function (data) {
   data |>
     filter(
       gender != "Exclude"
+      & (is.na(flag) | flag != "Exclude")
       & !(use_this_time %in% c("Exclude", "DNF", "Not found", "TBD"))
     ) |>
     mutate(
-      distance = str_replace(distance, " k", "k"),
       gun_time = ifelse(gun_time == "#N/A", NA, gun_time),
       chip_time = ifelse(chip_time == "#N/A", NA, chip_time),
-      minutes = sapply(use_this_time, parse_finish_time)
+      finish_time = ifelse(
+        str_count(distance, " hr") > 0,
+        paste0(str_replace(distance, " hr", ""), ":00:00"),
+        ifelse(
+          distance == "Run til you drop",
+          paste0(str_replace(gun_time, " laps", ""), ":00:00"),
+          use_this_time
+        )
+      ),
+      distance = str_replace(distance, " k", "k"),
+      minutes = sapply(finish_time, parse_finish_time),
+      kilometers = ifelse(
+        str_count(distance, " hr") > 0 | distance == "Run til you drop",
+        suppressWarnings(as.numeric(str_replace(use_this_time, " mi", ""))) * 1.609334,
+        kilometers
+      )
     ) |>
     rename(distance_label = distance)
 }

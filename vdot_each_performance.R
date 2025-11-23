@@ -7,39 +7,21 @@ library(tidyr)
 source("data.R")
 source("vdot.R")
 
-fetch.performances <- function (cache = FALSE) {
+filter_vdottable_performances <- function (data) {
   exclude <- read_csv("exclude_races.csv", show_col_types = FALSE)
-  get_performance_data(cache) |>
-    filter(is.na(flag) | !(flag %in% c("Exclude", "Future", "Relay"))) |>
+  data |>
     mutate(
-      kilometers = ifelse(
-        str_count(distance_label, " hr") > 0 | distance_label == "Run til you drop",
-        suppressWarnings(as.numeric(gsub(" mi", "", use_this_time))) * 1.609334,
-        kilometers
-      ),
-      finish_time = ifelse(
-        str_count(distance_label, " hr") > 0,
-        paste0(gsub(" hr", "", distance_label), ":00:00"),
-        ifelse(
-          distance_label == "Run til you drop",
-          paste0(gsub(" laps", "", gun_time), ":00:00"),
-          use_this_time
-        )
-      )
-    ) |>
-    mutate(finish_time = gsub(" \\(Strava\\)", "", finish_time)) |>
-    mutate(
+      discipline = ifelse(discipline == "Indoor", "Track", discipline),
       distance_mi = kilometers / 1.609334,
-      minutes = sapply(finish_time, parse_finish_time)
+      pace_min_mi = minutes / distance_mi
     ) |>
     select(!kilometers) |>
     filter(
-      !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
+      (is.na(flag) | flag != "Relay")
+      & distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3
+      & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
       & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
     ) |>
-    mutate(discipline = ifelse(discipline == "Indoor", "Track", discipline)) |>
-    filter(distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3) |>
-    mutate(pace_min_mi = minutes / distance_mi) |>
     anti_join(exclude, by = join_by(athlete, race, date, distance_label, discipline))
 }
 
@@ -183,12 +165,13 @@ most.improved <- function (data) {
 
 main <- function (cache = FALSE) {
   lookback.days <- 90
-  performances <- fetch.performances(cache)
+  performances <- get_performance_data(cache)
   vdot <- fetch.vdot.data(cache) |>
     prepare.vdot.data() |>
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   performances |>
+    filter_vdottable_performances() |>
     convert.xc.times() |>
     interpolate.vdot(vdot) |>
     #plot.individual.vdot.over.time("Karl Dickman", lookback.days)
