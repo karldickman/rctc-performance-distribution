@@ -4,51 +4,37 @@ library(ggplot2)
 library(slider)
 library(tidyr)
 
-source("histograms.R")
+source("data.R")
 source("vdot.R")
 
 fetch.performances <- function (cache = FALSE) {
   exclude <- read_csv("exclude_races.csv", show_col_types = FALSE)
-  fetch.data(cache) |>
-    filter(
-      (is.na(Flag) | !(Flag %in% c("Exclude", "Future", "Relay")))
-      & !(`Use this time` %in% c("TBD", "Not found", "DNF"))
-    ) |>
+  get_performance_data(cache) |>
+    filter(is.na(flag) | !(flag %in% c("Exclude", "Future", "Relay"))) |>
     mutate(
-      Kilometers = ifelse(
-        str_count(Distance, " hr") > 0 | Distance == "Run til you drop",
-        suppressWarnings(as.numeric(gsub(" mi", "", `Use this time`))) * 1.609334,
-        Kilometers
+      kilometers = ifelse(
+        str_count(distance_label, " hr") > 0 | distance_label == "Run til you drop",
+        suppressWarnings(as.numeric(gsub(" mi", "", use_this_time))) * 1.609334,
+        kilometers
       ),
-      `Use this time` = ifelse(
-        str_count(Distance, " hr") > 0,
-        paste0(gsub(" hr", "", Distance), ":00:00"),
+      finish_time = ifelse(
+        str_count(distance_label, " hr") > 0,
+        paste0(gsub(" hr", "", distance_label), ":00:00"),
         ifelse(
-          Distance == "Run til you drop",
-          paste0(gsub(" laps", "", `Gun Time`), ":00:00"),
-          `Use this time`
+          distance_label == "Run til you drop",
+          paste0(gsub(" laps", "", gun_time), ":00:00"),
+          use_this_time
         )
       )
     ) |>
-    select(
-      athlete = Athlete,
-      gender = Gender,
-      race = Race,
-      date = Date,
-      distance_label = Distance,
-      discipline = Discipline,
-      distance_km = Kilometers,
-      finish_time = `Use this time`
-    ) |>
     mutate(finish_time = gsub(" \\(Strava\\)", "", finish_time)) |>
     mutate(
-      distance_mi = distance_km / 1.609334,
-      minutes = sapply(finish_time, parse.chip.time)
+      distance_mi = kilometers / 1.609334,
+      minutes = sapply(finish_time, parse_finish_time)
     ) |>
-    select(!distance_km) |>
+    select(!kilometers) |>
     filter(
-      gender != "Exclude"
-      & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
+      !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
       & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
     ) |>
     mutate(discipline = ifelse(discipline == "Indoor", "Track", discipline)) |>
@@ -187,8 +173,7 @@ convert.xc.times <- function (data) {
     mutate(pace_min_mi = ifelse(discipline == "XC", pace_min_mi - 10/60, pace_min_mi))
 }
 
-main <- function (argv = c()) {
-  cache = "--cache" %in% argv
+main <- function (cache = FALSE) {
   lookback.days <- 90
   performances <- fetch.performances(cache)
   vdot <- fetch.vdot.data(cache) |>
@@ -198,6 +183,6 @@ main <- function (argv = c()) {
   performances |>
     convert.xc.times() |>
     interpolate.vdot(vdot) |>
-    #plot.vdot.over.time("Karl Dickman", lookback.days)
+    #plot.individual.vdot.over.time("Karl Dickman", lookback.days)
     plot.team.vdot.over.time(lookback.days)
 }

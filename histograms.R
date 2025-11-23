@@ -1,21 +1,7 @@
 library(dplyr)
 library(ggplot2)
-library(googlesheets4)
-library(hms)
-library(lubridate)
-library(stringr)
 
-parse.chip.time <- function (chip.time) {
-  if (substr(chip.time, nchar(chip.time), nchar(chip.time)) == "g") {
-    chip.time <- substr(chip.time, 1, nchar(chip.time) - 1)
-  }
-  if (str_count(chip.time, ":") == 0) {
-    chip.time <- paste0("0:00:", chip.time)
-  } else if (str_count(chip.time, ":") == 1) {
-    chip.time <- paste0("0:", chip.time)
-  }
-  as.numeric(lubridate::hms(chip.time), "mins")
-}
+source("data.R")
 
 required.race.distances <- c("5k", "10k", "Half marathon", "Marathon")
 
@@ -25,38 +11,16 @@ time.standard <- tibble(
 )
 
 conversions <- tibble(
-  distance = c(required.race.distances, "3 mi", "Quarter marathon"),
-  to = c(required.race.distances, "5k", "10k"),
-  conversion.factor = c(rep(1, 4), 5 / (3 * 1.609334), 10 / ((26+(385*3/5280)) / 4 * 1.609334))
+  distance_label = c(required.race.distances, "3 mi", "Quarter marathon"),
+  to_distance = c(required.race.distances, "5k", "10k"),
+  conversion_factor = c(rep(1, 4), 5 / (3 * 1.609334), 10 / ((26+(385*3/5280)) / 4 * 1.609334))
 )
 
 minutes.as.POSIXct <- function (minutes) {
   as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
 }
 
-fetch.data <- function (cache = FALSE) {
-  cached <- "Performances.csv"
-  columns <- data.frame(
-    name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Use this time", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
-    type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "c",             "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
-  )
-  col_types <- paste(columns$type, collapse = "")
-  if (cache) {
-    data <- cached |>
-      read_csv(col_types = col_types, show_col_types = FALSE) |>
-      mutate(Date = as.Date(Date))
-    return(data)
-  }
-  performances <- read_sheet(
-    "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
-    "Performances",
-    col_types = col_types
-  )
-  write.csv(performances, cached, row.names = FALSE)
-  performances
-}
-
-plot <- function (finish.times, time.standard, since) {
+plot <- function (finish.times, time.standard, time.period) {
   time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))
   finish.times |>
     mutate(minutes = minutes.as.POSIXct(minutes)) |>
@@ -65,9 +29,12 @@ plot <- function (finish.times, time.standard, since) {
     geom_histogram(bins = 10) +
     geom_vline(data = time.standard, aes(xintercept = standard)) +
     scale_x_datetime(date_labels = "%-H:%M") +
-    ggtitle(paste("Race results since", since), subtitle = "Road race results for all Rose City athletes") +
-    xlab("Finish time (h:mm)") +
-    ylab("Frequency")
+    labs(
+      title = paste("Race results", time.period),
+      subtitle = "Road race results for all Rose City athletes",
+      x = "Finish time (h:mm)",
+      y = "Frequency"
+    )
 }
 
 table <- function (finish.times) {
@@ -82,37 +49,37 @@ table <- function (finish.times) {
     inner_join(mutate(time.standard, standard = as_hms(standard * 60)))
 }
 
-main <- function (argv = c()) {
-  since <- Sys.Date() - 365
-  year.of.interest <- argv[[1]]
-  performances <- fetch.data("--cache" %in% argv)
+main <- function (year = NA, cache = FALSE, show.all.times = FALSE) {
+  # Parse arguments
+  since <- ifelse(is.na(year), Sys.Date() - 365, as.Date(paste0(year, "-01-01"))) |>
+    as.Date()
+  until <- ifelse(is.na(year), Sys.Date() + 1, as.Date(paste0(year + 1, "-01-01"))) |>
+    as.Date()
+  # Fetch data
+  performances <- get_performance_data(cache)
   finish.times <- performances |>
-    filter(Discipline == "Road" & !(`Use this time` %in% c("TBD", "Not found"))) |>
-    transmute(
-      athlete = Athlete,
-      race = Race,
-      year = year(Date),
-      date = ymd(Date),
-      distance = gsub(" k", "k", Distance),
-      chip_time = ifelse(is.na(`Chip Time`), `Gun Time`, `Chip Time`)
-    ) |>
-    #filter(year == year.of.interest) |>
-    filter(date >= since) |>
-    filter(!is.na(chip_time)) |>
-    inner_join(conversions) |>
-    mutate(minutes = sapply(chip_time, parse.chip.time)) |>
+    filter(discipline == "Road" & !is.na(minutes)) |>
+    filter(date >= since & date < until) |>
+    inner_join(conversions, by = join_by(distance_label)) |>
     mutate(
-      distance = to,
-      minutes = minutes * conversion.factor
+      distance_label = to_distance,
+      minutes = minutes * conversion_factor
     ) |>
     mutate(
-      distance = factor(distance, levels = required.race.distances)
+      distance = factor(distance_label, levels = required.race.distances)
     )
-  if (!('--all' %in% argv)) {
+  if (!show.all.times) {
     finish.times <- finish.times |>
       group_by(athlete, distance) |>
-      summarise(minutes = min(minutes))
+      summarise(minutes = min(minutes), .groups = "drop")
   }
-  print(table(finish.times))
-  plot(finish.times, time.standard, since)
+  finish.times |>
+    table() |>
+    print()
+  finish.times |>
+    plot(time.standard, ifelse(
+      is.na(year),
+      paste("since", since),
+      paste("in", year)
+    ))
 }

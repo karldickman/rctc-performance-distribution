@@ -2,13 +2,13 @@ library(dplyr)
 library(ggplot2)
 library(janitor)
 
-source("histograms.R")
+source("data.R")
 
 circle.viz <- function (data) {
   data |>
-    group_by(Date, Kilometers) |>
+    group_by(date, kilometers) |>
     tally() |>
-    ggplot(aes(x = Date, y = Kilometers, size = n)) +
+    ggplot(aes(x = date, y = kilometers, size = n)) +
     geom_point(alpha = 0.3) +
     scale_y_log10()
 }
@@ -18,7 +18,7 @@ bar.viz <- function (data) {
   data |>
     #filter(eistance %in% distances) |>
     mutate(
-      distance = factor(distance, levels = distances),
+      distance = factor(distance_label, levels = distances),
       training_group = factor(ifelse(
         kilometers < 1.5,
         "800/1500",
@@ -45,20 +45,13 @@ bar.viz <- function (data) {
     theme(legend.position = "bottom")
 }
 
-main <- function (argv = c()) {
-  fetch.data("--cache" %in% argv) |>
-    clean_names() |>
+main <- function (cache = FALSE) {
+  get_performance_data(cache) |>
     filter(
-      !(gender %in% c("Exclude", "Male team", "Female team"))
+      !(gender %in% c("Male team", "Female team"))
       & !(discipline %in% c("Duathlon", "Triathlon"))
-      & !(distance %in% c("Distance relay", "Distance Relay"))
+      & !(distance_label %in% c("Distance relay", "Distance Relay"))
       & !is.na(kilometers)
-      & !(use_this_time %in% c("TBD", "Not found", "DNF", "Exclude"))
-      & !is.na(use_this_time)
-    ) |>
-    mutate(
-      minutes = sapply(use_this_time, parse.chip.time),
-      distance = gsub(" k", "k", distance)
     ) |>
     bar.viz()
 }
