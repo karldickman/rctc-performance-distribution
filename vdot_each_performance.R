@@ -178,6 +178,7 @@ plot.team.vdot.over.time <- function (data, lookback.days) {
       y = "VDOT",
       color = "Discipline"
     ) +
+    guides(color = guide_legend(override.aes = list(size = 4))) +
     theme(legend.position = "bottom")
 }
 
