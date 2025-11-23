@@ -173,6 +173,14 @@ convert.xc.times <- function (data) {
     mutate(pace_min_mi = ifelse(discipline == "XC", pace_min_mi - 10/60, pace_min_mi))
 }
 
+most.improved <- function (data) {
+  data |>
+    filter(year(date) == year(Sys.Date())) |>
+    group_by(athlete) |>
+    summarise(races = n(), slope = 30 * coef(lm(vdot ~ date))[[2]]) |>
+    arrange(-slope)
+}
+
 main <- function (cache = FALSE) {
   lookback.days <- 90
   performances <- fetch.performances(cache)
