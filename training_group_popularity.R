@@ -20,12 +20,9 @@ circle.viz <- function (data) {
     theme(legend.position = "bottom")
 }
 
-bar.viz <- function (data) {
-  distances <- c("1 mi", "5k", "8k", "10k", "Half marathon", "Marathon")
+assign_races_to_training_groups <- function (data) {
   data |>
-    #filter(eistance %in% distances) |>
     mutate(
-      distance = factor(distance_label, levels = distances),
       training_group = factor(ifelse(
         kilometers < 1.5,
         "800/1500",
@@ -39,7 +36,11 @@ bar.viz <- function (data) {
           )
         )
       ), levels = c("800/1500", "5k/10k", "Marathon/Half", "Ultra"))
-    ) |>
+    )
+}
+
+bar.viz <- function (data) {
+  data |>
     ggplot(aes(x = year(date), fill = training_group)) +
     geom_bar(position = "dodge") +
     scale_x_continuous(breaks = seq(2017, 2025, by = 1)) +
@@ -60,5 +61,6 @@ main <- function (cache = FALSE) {
       & !(distance_label %in% c("Distance relay", "Distance Relay"))
       & !is.na(kilometers)
     ) |>
+    assign_races_to_training_groups() |>
     bar.viz()
 }
