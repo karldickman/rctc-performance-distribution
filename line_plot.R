@@ -5,11 +5,11 @@ library(slider)
 
 source("data.R")
 
-main <- function (cache = FALSE) {
+main <- function (distance = "Half marathon", cache = FALSE) {
   exclude.races <- read_csv("exclude_races.csv", show_col_types = FALSE)
   # Filter to relevant data
   performances <- get_performance_data(cache) |>
-    filter(distance_label == "Half marathon" & discipline == "Road" & !is.na(minutes)) |>
+    filter(distance_label == distance & discipline == "Road" & !is.na(minutes)) |>
     anti_join(exclude.races, by = join_by(athlete, race, date, distance_label, discipline))
   # Calculate rolling averages
   rolling_avgs <- performances |>
@@ -29,7 +29,7 @@ main <- function (cache = FALSE) {
     geom_point() +
     geom_line(data = rolling_avgs, aes(y = rolling_avg)) +
     labs(
-      title = "Half marathon performances over time",
+      title = paste(distance, "performances over time"),
       x = "Date",
       y = "Minutes",
       color = "Gender"
