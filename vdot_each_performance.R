@@ -11,7 +11,7 @@ fetch.performances <- function (cache = FALSE) {
   exclude <- read_csv("exclude_races.csv", show_col_types = FALSE)
   fetch.data(cache) |>
     filter(
-      (is.na(Flag) | !(Flag %in% c("Future", "Relay")))
+      (is.na(Flag) | !(Flag %in% c("Exclude", "Future", "Relay")))
       & !(`Use this time` %in% c("TBD", "Not found", "DNF"))
     ) |>
     mutate(
@@ -173,7 +173,7 @@ plot.team.vdot.over.time <- function (data, lookback.days) {
     geom_hline(yintercept = c(37.9, 55.3, 63.2), linetype = "dashed") +
     scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
     labs(
-      title = paste0("All VDOTs since joining Rose City"),
+      title = "All Rose City race VDOTs",
       x = "Date",
       y = "VDOT",
       color = "Discipline"
