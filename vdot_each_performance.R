@@ -8,7 +8,7 @@ source("histograms.R")
 source("vdot.R")
 
 fetch.performances <- function (cache = FALSE) {
-  exclude <- read_csv("exclude_races.csv")
+  exclude <- read_csv("exclude_races.csv", show_col_types = FALSE)
   fetch.data(cache) |>
     filter(
       (is.na(Flag) | !(Flag %in% c("Future", "Relay")))

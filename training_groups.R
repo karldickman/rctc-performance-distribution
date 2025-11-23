@@ -40,7 +40,7 @@ training.group.assignments <- function (data, roster, lookback.days) {
 }
 
 newbie.performances <- function () {
-  read_csv("newbies.csv", col_types = "ccDcdcdc") |>
+  read_csv("newbies.csv", col_types = "ccDcdcdc", show_col_types = FALSE) |>
     mutate(pace_min_mi = minutes / distance_mi)
 }
 

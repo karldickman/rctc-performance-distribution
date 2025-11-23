@@ -36,20 +36,21 @@ minutes.as.POSIXct <- function (minutes) {
 
 fetch.data <- function (cache = FALSE) {
   cached <- "Performances.csv"
-  if (cache) {
-    data <- cached |>
-      read.csv(check.names = FALSE) |>
-      as_tibble() |>
-      mutate(Date = as.Date(Date))
-    return(data)
-  }
   columns <- data.frame(
     name = c("Athlete", "Race", "Date", "Distance", "Discipline", "Gun Time", "Chip Time", "Achievement", "Gender", "Flag", "Age (reported)", "Age (calculated)", "Youngest", "Oldest", "Masters", "Age (Combined)", "Earliest BDay", "Latest BDay", "Results", "Use this time", "Personal Rank", "Team Rank", "Masters Personal Rank", "Masters Team Rank", "Year", "Kilometers", "", "As Of", "a date"),
     type = c("c",       "c",    "D",    "c",        "c",          "c",        "c",         "c",           "c",      "c",    "d",              "d",                "d",        "d",      "c",       "d",              "D",             "D",           "c",       "c",             "d",             "d",         "d",                     "d",                 "d",    "d"         , "c","c",     "c")
   )
+  col_types <- paste(columns$type, collapse = "")
+  if (cache) {
+    data <- cached |>
+      read_csv(col_types = col_types, show_col_types = FALSE) |>
+      mutate(Date = as.Date(Date))
+    return(data)
+  }
   performances <- read_sheet(
     "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
-    col_types = paste(columns$type, collapse = "")
+    "Performances",
+    col_types = col_types
   )
   write.csv(performances, cached, row.names = FALSE)
   performances
