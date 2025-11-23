@@ -23,7 +23,7 @@ fetch.roster <- function (cache = FALSE) {
   data
 }
 
-count.races <- function (performances, roster, year.of.interest = 2025) {
+count.races <- function (performances, roster, year.of.interest) {
   races.by.athlete <- performances |>
     filter(
       (is.na(flag) | flag != "Relay")
@@ -45,24 +45,34 @@ count.races <- function (performances, roster, year.of.interest = 2025) {
     mutate(days = to - from, expansion_factor = 366 / as.numeric(to - from)) |>
     left_join(races.by.athlete, by = join_by(athlete)) |>
     mutate(n = ifelse(is.na(n), 0, n)) |>
-    mutate(expanded_n = n * expansion_factor)
-}
-
-plot <- function (data) {
-  data |>
-    ggplot(aes(x = expanded_n)) +
-    geom_histogram(boundary = 0) +
-    labs(
-      title = "Distribution of times raced in 2025",
-      x = "Number of races",
-      y = "Count of teammates"
+    mutate(
+      expanded_n = n * expansion_factor,
+      membership_status = ifelse(
+        to < end.date,
+        "Former",
+        "Current"
+      )
     )
 }
 
-main <- function (cache = FALSE) {
+plot <- function (data, year) {
+  data |>
+    ggplot(aes(x = expanded_n, fill = factor(membership_status, levels = c("Former", "Current")))) +
+    geom_histogram(boundary = 0) +
+    scale_fill_discrete(guide = guide_legend(reverse = TRUE)) +
+    labs(
+      title = paste("Distribution of times raced in", year),
+      x = "Number of races",
+      y = "Count of teammates",
+      fill = "Membership status"
+    ) +
+    theme(legend.position = "bottom")
+}
+
+main <- function (year = 2025, cache = FALSE) {
   performances <- get_performance_data(cache)
   roster <- fetch.roster(cache) |>
     clean_names()
-  count.races(performances, roster) |>
-    plot()
+  count.races(performances, roster, year) |>
+    plot(year)
 }
