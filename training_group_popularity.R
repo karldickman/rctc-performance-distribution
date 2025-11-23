@@ -24,18 +24,18 @@ assign_races_to_training_groups <- function (data) {
   data |>
     mutate(
       training_group = factor(ifelse(
-        kilometers < 1.5,
-        "800/1500",
+        discipline == "Trail" | kilometers >= 43,
+        "Trail/Ultra",
         ifelse(
-          kilometers < 15,
-          "5k/10k",
+          kilometers < 1.5,
+          "800/1500",
           ifelse(
-            kilometers < 43,
-            "Marathon/Half",
-            "Ultra"
+            kilometers < 15,
+            "5k/10k",
+            "Marathon/Half"
+            )
           )
-        )
-      ), levels = c("800/1500", "5k/10k", "Marathon/Half", "Ultra"))
+        ), levels = c("800/1500", "5k/10k", "Marathon/Half", "Trail/Ultra"))
     )
 }
 
