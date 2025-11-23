@@ -1,11 +1,14 @@
 library(dplyr)
 library(ggplot2)
 library(janitor)
+library(viridis)
 
 source("../distance-matrix/attendance.R")
 source("data.R")
 
 current.year <- year(Sys.Date())
+
+distance.axis.breaks <- c(0.1, 0.2, 0.4, 0.8, 1.6, 3, 5, 10, 21.1, 42.2, 100, 160.9)
 
 circle.viz <- function (data) {
   data |>
@@ -13,12 +16,30 @@ circle.viz <- function (data) {
     tally() |>
     ggplot(aes(x = date, y = kilometers, size = n)) +
     geom_point(alpha = 0.3) +
-    scale_y_log10() +
+    scale_x_date(breaks = "1 year", date_labels = "%Y") +
+    scale_y_log10(breaks = distance.axis.breaks) +
     labs(
       title = "Popularity of race distances",
       x = "Date",
       y = "Race distance (km), log scale",
       size = "Participants"
+    ) +
+    theme(legend.position = "bottom")
+}
+
+hex.viz <- function (data) {
+  data |>
+    group_by(date, kilometers) |>
+    ggplot(aes(x = date, y = kilometers)) +
+    geom_hex() +
+    scale_x_date(breaks = "1 year", date_labels = "%Y") +
+    scale_y_log10(breaks = distance.axis.breaks) +
+    scale_fill_viridis() +
+    labs(
+      title = "Popularity of race distances",
+      x = "Date",
+      y = "Race distance (km), log scale",
+      fill = "Participants"
     ) +
     theme(legend.position = "bottom")
 }
@@ -128,7 +149,7 @@ main <- function (training.group.source = "Race", cache = FALSE) {
     ) |>
     assign_races_to_training_groups()
   if (training.group.source == "Race") {
-    return(plot_race_training_group_popularity(performances))
+    plot_race_training_group_popularity(performances)
   } else if (training.group.source == "Person") {
     roster <- fetch.roster(cache) |>
       clean_names()
