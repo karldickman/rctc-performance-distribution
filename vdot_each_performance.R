@@ -130,8 +130,6 @@ plot.individual.vdot.over.time <- function (data, athlete.name, lookback.days) {
 }
 
 plot.team.vdot.over.time <- function (data, lookback.days) {
-  min.vdot <- floor(min(data$vdot))
-  max.vdot <- ceiling(max(data$vdot))
   data |>
     arrange(date) |>
     mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(lookback.days))) |>
