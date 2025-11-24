@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(janitor)
 
 source("../distance-matrix/attendance.R")
 source("vdot_each_performance.R")
@@ -44,13 +45,13 @@ newbie.performances <- function () {
     mutate(pace_min_mi = minutes / distance_mi)
 }
 
-main <- function (argv = c()) {
-  cache = "--cache" %in% argv
-  lookback.days <- 90
+main <- function (lookback.days = 90, cache = FALSE) {
   roster <- fetch.roster(cache) |>
-    filter(Status == "Member" & is.na(To)) |>
-    select(athlete = Name)
-  performances <- fetch.performances(cache) |>
+    clean_names() |>
+    filter(status == "Member" & is.na(to)) |>
+    select(athlete = name)
+  performances <- get_performance_data(cache) |>
+    filter_vdottable_performances() |>
     bind_rows(newbie.performances())
   vdot <- fetch.vdot.data(cache) |>
     prepare.vdot.data() |>
