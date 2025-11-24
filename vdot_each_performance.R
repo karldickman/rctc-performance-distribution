@@ -17,7 +17,7 @@ filter_vdottable_performances <- function (data) {
     ) |>
     select(!kilometers) |>
     filter(
-      (is.na(flag) | flag != "Relay")
+      (is.na(flag) | !flag %in% c("Relay", "Team"))
       & distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3
       & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
       & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
