@@ -148,6 +148,27 @@ plot.team.vdot.over.time <- function (data, lookback.days) {
     theme(legend.position = "bottom")
 }
 
+plot.vdot.improvement.over.time <- function (data) {
+  data |>
+    filter(date >= as.Date("2023-01-01")) |>
+    group_by(athlete) |>
+    filter(n() > 10) |>
+    ungroup() |>
+    ggplot(aes(x = date, y = vdot)) +
+    geom_point(aes(col = discipline), size = 0.5) +
+    facet_wrap(~ athlete) +
+    geom_smooth() +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    labs(
+      title = "All Rose City race VDOTs",
+      x = "Date",
+      y = "VDOT",
+      color = "Discipline"
+    ) +
+    guides(color = guide_legend(override.aes = list(size = 4))) +
+    theme(legend.position = "bottom")
+}
+
 convert.xc.times <- function (data) {
   data |>
     mutate(pace_min_mi = ifelse(discipline == "XC", pace_min_mi - 10/60, pace_min_mi))
