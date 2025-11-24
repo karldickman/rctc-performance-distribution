@@ -118,8 +118,9 @@ plot.individual.vdot.over.time <- function (data, athlete.name, lookback.days) {
     ggplot(aes(x = date, y = vdot, group = athlete)) +
     geom_line(aes(y = rolling_avg), linetype = "dashed") +
     geom_point(aes(col = discipline)) +
+    geom_smooth() +
     scale_x_date(date_breaks = "3 month", date_labels = "%Y-%m") +
-    scale_y_continuous(breaks = vdot.breaks) +
+    scale_y_continuous(breaks = vdot.breaks, limits = c(min.vdot, max.vdot)) +
     labs(
       title = paste0(athlete.name, "'s VDOT since joining Rose City"),
       x = "Date",
