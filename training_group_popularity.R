@@ -141,15 +141,17 @@ plot_race_training_group_popularity <- function (data) {
 
 main <- function (training.group.source = "Race", cache = FALSE) {
   performances <- get_performance_data(cache) |>
+    explode_relay_legs() |>
     filter(
       !(gender %in% c("Male team", "Female team"))
       & !(discipline %in% c("Duathlon", "Triathlon"))
-      & !(distance_label %in% c("Distance relay", "Distance Relay"))
+      & tolower(distance_label) != "distance relay"
       & !is.na(distance_km)
     ) |>
     assign_races_to_training_groups()
   if (training.group.source == "Race") {
-    plot_race_training_group_popularity(performances)
+    performances |>
+      plot_race_training_group_popularity()
   } else if (training.group.source == "Person") {
     roster <- fetch.roster(cache) |>
       clean_names()

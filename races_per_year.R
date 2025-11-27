@@ -26,10 +26,7 @@ fetch.roster <- function (cache = FALSE) {
 
 count.races.in.year <- function (performances, roster, year.of.interest) {
   races.by.athlete <- performances |>
-    filter(
-      (is.na(flag) | flag != "Relay")
-      & year == year.of.interest
-    ) |>
+    filter(year == year.of.interest) |>
     group_by(athlete) |>
     tally()
   start.date <- as.Date(paste0(year.of.interest, "-01-01"))
@@ -96,7 +93,8 @@ plot <- function (data) {
 }
 
 main <- function (cache = FALSE) {
-  performances <- get_performance_data(cache)
+  performances <- get_performance_data(cache) |>
+    explode_relay_legs()
   roster <- fetch.roster(cache) |>
     clean_names()
   count.races(performances, roster) |>

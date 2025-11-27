@@ -3,6 +3,7 @@ library(googlesheets4)
 library(janitor)
 library(lubridate)
 library(readr)
+library(tidyr)
 library(stringr)
 
 fetch_performance_data <- function (cache = FALSE) {
@@ -72,6 +73,84 @@ process_performance_data <- function (data) {
       distance_mi = kilometers / 1.609334
     ) |>
     rename(distance_km = kilometers, distance_label = distance)
+}
+
+explode_relay_legs <- function (data) {
+  non.relays <- data |>
+    filter(is.na(flag) | flag != "Relay")
+  legs <- tibble(
+    distance_label = c(
+      rep("4 x 100 m relay", 4),
+      rep("4 x 200 m relay", 4),
+      rep("4 x 400 m relay", 4),
+      rep("4 x 800 m relay", 4),
+      rep("Sprint medley relay", 4),
+      rep("Swedish relay", 4),
+      rep("Distance medley relay", 4)
+    ),
+    leg = rep(1:4, 7),
+    distance_km = c(
+      rep(0.1, 4),
+      rep(0.2, 4),
+      rep(0.4, 4),
+      rep(0.8, 4),
+      0.1, 0.1, 0.2, 0.4,
+      0.1, 0.2, 0.3, 0.4,
+      1.2, 0.4, 0.8, 1.6
+    )
+  ) |>
+    mutate(distance_mi = distance_km / 1.609334)
+  relays <- data |>
+    filter(flag == "Relay" & !(athlete %in% c("(members and order unknown)"))) |>
+    select(c(athlete, race, date, distance_label, discipline)) |>
+    mutate(team = athlete) |>
+    separate_rows(athlete, sep = ",") |>
+    mutate(athlete = trimws(athlete)) |>
+    group_by(team, race, date, distance_label, discipline) |>
+    mutate(leg = row_number()) |>
+    ungroup() |>
+    mutate(leg = ifelse(
+      tolower(distance_label) %in% c("10 mi relay", "distance relay"),
+      NA,
+      leg
+    )) |>
+    filter(!(athlete %in% c("?", "Leg 1", "Leg 2", "Leg 3", "Leg 4"))) |>
+    left_join(legs, by = join_by(distance_label, leg))
+  order.unknown.after <- relays |>
+    filter(str_starts(athlete, "\\(order\\?\\)")) |>
+    select(team, race, date, distance_label, discipline, leg) |>
+    inner_join(relays, by = join_by(
+      team == team,
+      race == race,
+      date == date,
+      distance_label == distance_label,
+      discipline == discipline,
+      leg <= leg
+    )) |>
+    select(!c(leg.x, leg.y, distance_mi, distance_km))
+  order.unknown <- relays |>
+    inner_join(order.unknown.after, by = join_by(
+      team == team,
+      athlete == athlete,
+      race == race,
+      date == date,
+      distance_label == distance_label,
+      discipline == discipline,
+    )) |>
+    mutate(athlete = athlete |> str_replace("\\(order\\?\\)", "") |> trimws()) |>
+    select(!leg)
+  order.known <- relays |>
+    anti_join(order.unknown.after, by = join_by(
+      team == team,
+      athlete == athlete,
+      race == race,
+      date == date,
+      distance_label == distance_label,
+      discipline == discipline,
+    ))
+  relays <- bind_rows(order.known, order.unknown) |>
+    mutate(flag = "Relay", year = year(date))
+  bind_rows(non.relays, relays)
 }
 
 get_performance_data <- function (cache = FALSE) {
