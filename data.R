@@ -68,9 +68,10 @@ process_performance_data <- function (data) {
         str_count(distance, " hr") > 0 | distance == "Run til you drop",
         suppressWarnings(as.numeric(str_replace(use_this_time, " mi", ""))) * 1.609334,
         kilometers
-      )
+      ),
+      distance_mi = kilometers / 1.609334
     ) |>
-    rename(distance_label = distance)
+    rename(distance_km = kilometers, distance_label = distance)
 }
 
 get_performance_data <- function (cache = FALSE) {

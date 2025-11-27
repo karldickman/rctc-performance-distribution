@@ -60,11 +60,11 @@ plot.date.x.pace.x.distance <- function (performances) {
 
 main <- function (cache = FALSE) {
   get_performance_data(cache) |>
-    filter(!(discipline %in% c("Duathlon", "Triathlon", "Skimo"))) |>
-    mutate(
-      distance_mi = kilometers / 1.609334,
-      pace = minutes / distance_mi
+    filter(
+      tolower(distance_label) != "distance relay"
+      & !(discipline %in% c("Duathlon", "Triathlon", "Skimo"))
     ) |>
+    mutate(pace = minutes / distance_mi) |>
     #plot.distance.x.pace()
     #plot.date.x.distance()
     plot.date.x.pace.x.distance()

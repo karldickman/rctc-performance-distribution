@@ -12,9 +12,9 @@ distance.axis.breaks <- c(0.1, 0.2, 0.4, 0.8, 1.6, 3, 5, 10, 21.1, 42.2, 100, 16
 
 circle.viz <- function (data) {
   data |>
-    group_by(date, kilometers) |>
+    group_by(date, distance_km) |>
     tally() |>
-    ggplot(aes(x = date, y = kilometers, size = n)) +
+    ggplot(aes(x = date, y = distance_km, size = n)) +
     geom_point(alpha = 0.3) +
     scale_x_date(breaks = "1 year", date_labels = "%Y") +
     scale_y_log10(breaks = distance.axis.breaks) +
@@ -29,8 +29,8 @@ circle.viz <- function (data) {
 
 hex.viz <- function (data) {
   data |>
-    group_by(date, kilometers) |>
-    ggplot(aes(x = date, y = kilometers)) +
+    group_by(date, distance_km) |>
+    ggplot(aes(x = date, y = distance_km)) +
     geom_hex() +
     scale_x_date(breaks = "1 year", date_labels = "%Y") +
     scale_y_log10(breaks = distance.axis.breaks) +
@@ -50,13 +50,13 @@ assign_races_to_training_groups <- function (data) {
   data |>
     mutate(
       training_group = factor(ifelse(
-        discipline == "Trail" | kilometers >= 43,
+        discipline == "Trail" | distance_km >= 43,
         "Trail/Ultra",
         ifelse(
-          kilometers < 1.5,
+          distance_km < 1.5,
           "800/1500",
           ifelse(
-            kilometers < 15,
+            distance_km < 15,
             "5k/10k",
             "Marathon/Half"
             )
@@ -145,7 +145,7 @@ main <- function (training.group.source = "Race", cache = FALSE) {
       !(gender %in% c("Male team", "Female team"))
       & !(discipline %in% c("Duathlon", "Triathlon"))
       & !(distance_label %in% c("Distance relay", "Distance Relay"))
-      & !is.na(kilometers)
+      & !is.na(distance_km)
     ) |>
     assign_races_to_training_groups()
   if (training.group.source == "Race") {
