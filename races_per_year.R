@@ -41,6 +41,7 @@ count.races.in.year <- function (performances, roster, year.of.interest) {
     group_by(athlete) |>
     summarise(from = min(from), to = max(to)) |>
     mutate(days = to - from, expansion_factor = 366 / as.numeric(to - from)) |>
+    filter(days > 0) |>
     left_join(races.by.athlete, by = join_by(athlete)) |>
     mutate(n = ifelse(is.na(n), 0, n)) |>
     mutate(
@@ -77,7 +78,7 @@ count.races <- function (data, roster) {
   )
 }
 
-plot <- function (data) {
+plot_races_per_year <- function (data) {
   data |>
     ggplot(aes(x = expanded_n, fill = factor(membership_status, levels = c("Former", "Current")))) +
     geom_histogram(boundary = 0) +
@@ -98,5 +99,5 @@ main <- function (cache = FALSE) {
   roster <- fetch.roster(cache) |>
     clean_names()
   count.races(performances, roster) |>
-    plot()
+    plot_races_per_year()
 }
