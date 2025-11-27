@@ -2,7 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(viridis)
 
-source("training_groups.R")
+source("data.R")
 
 plot.distance.x.pace <- function (performances) {
   performances |>
@@ -53,15 +53,18 @@ plot.date.x.pace.x.distance <- function (performances) {
     theme_bw(base_size = 14) +
     theme(
       plot.background = element_rect(fill = "white", color = NA),
-      legend.key.width = unit(3, "cm"),
+      legend.key.width = unit(2, "cm"),
       legend.position = "bottom"
     )
 }
 
-main <- function (argv = c()) {
-  fetch.performances("--cache" %in% argv) |>
+main <- function (cache = FALSE) {
+  get_performance_data(cache) |>
     filter(!(discipline %in% c("Duathlon", "Triathlon", "Skimo"))) |>
-    mutate(pace = minutes / distance_mi) |>
+    mutate(
+      distance_mi = kilometers / 1.609334,
+      pace = minutes / distance_mi
+    ) |>
     #plot.distance.x.pace()
     #plot.date.x.distance()
     plot.date.x.pace.x.distance()
