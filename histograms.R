@@ -2,6 +2,9 @@ library(dplyr)
 library(ggplot2)
 
 source("data.R")
+source("utils.R")
+
+as_hms <- hms::as_hms
 
 required.race.distances <- c("5k", "10k", "Half marathon", "Marathon")
 
@@ -15,10 +18,6 @@ conversions <- tibble(
   to_distance = c(required.race.distances, "5k", "10k"),
   conversion_factor = c(rep(1, 4), 5 / (3 * 1.609334), 10 / ((26+(385*3/5280)) / 4 * 1.609334))
 )
-
-minutes.as.POSIXct <- function (minutes) {
-  as.POSIXct(minutes * 60, origin = "1970-01-01", tz = "UTC")
-}
 
 plot <- function (finish.times, time.standard, time.period) {
   time.standard <- mutate(time.standard, standard = minutes.as.POSIXct(standard))

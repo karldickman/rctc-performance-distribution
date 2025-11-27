@@ -4,6 +4,7 @@ library(lubridate)
 library(slider)
 
 source("data.R")
+source("utils.R")
 
 main <- function (distance = "Half marathon", cache = FALSE) {
   exclude.races <- read_csv("exclude_races.csv", show_col_types = FALSE)
