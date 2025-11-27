@@ -20,18 +20,14 @@ plot_race_discipline_popularity <- function (data) {
 
 main <- function (cache = FALSE) {
   get_performance_data(cache) |>
+    filter(
+      !(gender %in% c("Male team", "Female team"))
+      & !(discipline %in% c("Duathlon", "Skimo", "Triathlon"))
+    ) |>
     mutate(discipline = ifelse(
       discipline %in% c("Indoor", "Beer mile"),
       "Track",
-      ifelse(
-        discipline == "Duathlon",
-        "Triathlon",
-        discipline
-      )
+      discipline
     )) |>
-    filter(
-      !(gender %in% c("Male team", "Female team"))
-      & !(discipline %in% c("Skimo"))
-    ) |>
     plot_race_discipline_popularity()
 }
