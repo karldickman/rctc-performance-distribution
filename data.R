@@ -29,6 +29,27 @@ fetch_performance_data <- function (cache = FALSE) {
   performances
 }
 
+fetch_distance_relay_legs <- function (cache = FALSE) {
+  cached <- "Distance relays.csv"
+  columns <- tibble(
+    name = c("Athlete", "Race", "Date", "Discipline", "Leg", "Distance (mi)"),
+    type = c("c",       "c",    "D",    "c",          "d",   "d")
+  )
+  col_types <- paste(columns$type, collapse = "")
+  if (cache) {
+    read_csv(cached, col_types = col_types, show_col_types = FALSE)
+  } else {
+    data <- read_sheet(
+      "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
+      "Distance relay legs",
+      col_types = col_types
+    ) |>
+      clean_names()
+    write.csv(data, cached, row.names = FALSE)
+    data
+  }
+}
+
 parse_finish_time <- function (finish.time) {
   if (is.na(finish.time)) {
     return(NA)
@@ -75,6 +96,16 @@ process_performance_data <- function (data) {
     rename(distance_km = kilometers, distance_label = distance)
 }
 
+process_distance_relay_legs <- function (data) {
+  data |>
+    mutate(
+      distance_km = distance_mi * 1.609334,
+      year = year(date),
+      flag = "Relay",
+      distance_label = "Distance relay"
+    )
+}
+
 explode_relay_legs <- function (data) {
   non.relays <- data |>
     filter(is.na(flag) | flag != "Relay")
@@ -101,7 +132,11 @@ explode_relay_legs <- function (data) {
   ) |>
     mutate(distance_mi = distance_km / 1.609334)
   relays <- data |>
-    filter(flag == "Relay" & !(athlete %in% c("(members and order unknown)"))) |>
+    filter(
+      flag == "Relay"
+      & !(athlete %in% c("(members and order unknown)"))
+      & tolower(distance_label) != "distance relay" # Fetch from spreadsheet instead
+    ) |>
     select(c(athlete, race, date, distance_label, discipline)) |>
     mutate(team = athlete) |>
     separate_rows(athlete, sep = ",") |>
@@ -110,7 +145,7 @@ explode_relay_legs <- function (data) {
     mutate(leg = row_number()) |>
     ungroup() |>
     mutate(leg = ifelse(
-      tolower(distance_label) %in% c("10 mi relay", "distance relay"),
+      tolower(distance_label) %in% c("10 mi relay"),
       NA,
       leg
     )) |>
@@ -153,7 +188,19 @@ explode_relay_legs <- function (data) {
   bind_rows(non.relays, relays)
 }
 
-get_performance_data <- function (cache = FALSE) {
-  fetch_performance_data(cache) |>
+get_distance_relay_legs <- function (cache = FALSE) {
+  fetch_distance_relay_legs(cache) |>
+    process_distance_relay_legs()
+}
+
+get_performance_data <- function (include_relay_legs = FALSE, cache = FALSE) {
+  performances <- fetch_performance_data(cache) |>
     process_performance_data()
+  if (include_relay_legs) {
+    return(performances)
+  }
+  distance_relay_legs <- get_distance_relay_legs(cache)
+  performances |>
+    explode_relay_legs() |>
+    bind_rows(distance_relay_legs)
 }

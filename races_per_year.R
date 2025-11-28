@@ -5,7 +5,7 @@ library(readr)
 
 source("data.R")
 
-fetch.roster <- function (cache = FALSE) {
+fetch_roster <- function (cache = FALSE) {
   file.path <- "roster.csv"
   if (cache & file.exists(file.path)) {
     return(read_csv(file.path, show_col_types = FALSE))
@@ -19,7 +19,8 @@ fetch.roster <- function (cache = FALSE) {
     "Athletes",
     col_types = paste(columns$type, collapse = "")
   ) |>
-    rename(`Date joined` = `Date Joined...8`, `Date left` = `Date Left...9`)
+    rename(`Date joined` = `Date Joined...8`, `Date left` = `Date Left...9`) |>
+    clean_names()
   write.csv(data, file.path, row.names = FALSE)
   data
 }
@@ -34,9 +35,9 @@ count.races <- function (performances, roster) {
   races.by.athlete <- performances |>
     group_by(athlete, year) |>
     tally()
-  end.of.next.year <- as.Date(paste0(current.year + 1, "-01-01"))
+  start.of.next.year <- as.Date(paste0(current.year + 1, "-01-01"))
   roster |>
-    mutate(date_left = coalesce(date_left, end.of.next.year)) |>
+    mutate(date_left = coalesce(date_left, start.of.next.year)) |>
     inner_join(years, by = join_by(date_joined < end_date, date_left >= start_date)) |>
     mutate(
       from = as.Date(ifelse(date_joined < start_date, start_date, date_joined)),
@@ -79,10 +80,10 @@ plot_races_per_year <- function (data) {
 }
 
 main <- function (cache = FALSE) {
-  performances <- get_performance_data(cache) |>
-    explode_relay_legs()
-  roster <- fetch.roster(cache) |>
-    clean_names()
+  # Fetch data
+  performances <- get_performance_data(include_relay_legs = TRUE, cache = cache)
+  roster <- fetch_roster(cache)
+  # Summarize and plot
   count.races(performances, roster) |>
     plot_races_per_year()
 }
