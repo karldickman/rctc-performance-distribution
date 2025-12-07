@@ -5,26 +5,6 @@ library(readr)
 
 source("data.R")
 
-fetch_roster <- function (cache = FALSE) {
-  file.path <- "roster.csv"
-  if (cache & file.exists(file.path)) {
-    return(read_csv(file.path, show_col_types = FALSE))
-  }
-  columns <- data.frame(
-    name = c("Name", "Alternate Names", "Gender", "Birthday", "Earliest BDay", "Latest BDay", "BDay Range", "Date Joined", "Date Left", "Previous Date Joined", "Previous Date Left", "Class", "Years on team"),
-    type = c("c",    "c",               "c",      "D",        "D",             "D",           "d",          "D",            "D",        "D",                    "D",                   "c",    "d"            )
-  )
-  data <- read_sheet(
-    "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
-    "Athletes",
-    col_types = paste(columns$type, collapse = "")
-  ) |>
-    rename(`Date joined` = `Date Joined...8`, `Date left` = `Date Left...9`) |>
-    clean_names()
-  write.csv(data, file.path, row.names = FALSE)
-  data
-}
-
 count.races <- function (performances, roster) {
   current.year <- year(Sys.Date())
   years <- tibble(year = 2017:current.year) |>
@@ -82,7 +62,7 @@ plot_races_per_year <- function (data) {
 main <- function (cache = FALSE) {
   # Fetch data
   performances <- get_performance_data(include_relay_legs = TRUE, cache = cache)
-  roster <- fetch_roster(cache)
+  roster <- get_roster(cache)
   # Summarize and plot
   count.races(performances, roster) |>
     plot_races_per_year()

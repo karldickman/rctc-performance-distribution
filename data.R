@@ -50,6 +50,26 @@ fetch_distance_relay_legs <- function (cache = FALSE) {
   }
 }
 
+fetch_roster <- function (cache = FALSE) {
+  file.path <- "roster.csv"
+  if (cache & file.exists(file.path)) {
+    return(read_csv(file.path, show_col_types = FALSE))
+  }
+  columns <- data.frame(
+    name = c("Name", "Alternate Names", "Gender", "Birthday", "Earliest BDay", "Latest BDay", "BDay Range", "Date Joined", "Date Left", "Previous Date Joined", "Previous Date Left", "Class", "Years on team"),
+    type = c("c",    "c",               "c",      "D",        "D",             "D",           "d",          "D",            "c",        "D",                    "D",                   "c",    "d"            )
+  )
+  data <- read_sheet(
+    "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
+    "Athletes",
+    col_types = paste(columns$type, collapse = "")
+  ) |>
+    rename(`Date joined` = `Date Joined...8`, `Date left` = `Date Left...9`) |>
+    clean_names()
+  write.csv(data, file.path, row.names = FALSE)
+  data
+}
+
 parse_finish_time <- function (finish.time) {
   if (is.na(finish.time)) {
     return(NA)
@@ -188,6 +208,18 @@ explode_relay_legs <- function (data) {
   bind_rows(non.relays, relays)
 }
 
+process_roster <- function (data) {
+  data <- data |>
+    filter(!is.na(date_joined)) |>
+    mutate(date_left = as.Date(ifelse(date_left == "Current Member", NA, date_left)))
+  first.joined <- data |>
+    select(name, date_joined = date_joined_10, date_left = date_left_11) |>
+    filter(!is.na(date_joined))
+  data |>
+    select(c(name, date_joined, date_left)) |>
+    bind_rows(first.joined)
+}
+
 get_distance_relay_legs <- function (cache = FALSE) {
   fetch_distance_relay_legs(cache) |>
     process_distance_relay_legs()
@@ -203,4 +235,8 @@ get_performance_data <- function (include_relay_legs = FALSE, cache = FALSE) {
   performances |>
     explode_relay_legs() |>
     bind_rows(distance_relay_legs)
+
+get_roster <- function (cache = FALSE) {
+  fetch_roster(cache) |>
+    process_roster()
 }
