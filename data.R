@@ -228,13 +228,15 @@ get_distance_relay_legs <- function (cache = FALSE) {
 get_performance_data <- function (include_relay_legs = FALSE, cache = FALSE) {
   performances <- fetch_performance_data(cache) |>
     process_performance_data()
-  if (include_relay_legs) {
-    return(performances)
+  if (!include_relay_legs) {
+    performances
+  } else {
+    distance_relay_legs <- get_distance_relay_legs(cache)
+    performances |>
+      explode_relay_legs() |>
+      bind_rows(distance_relay_legs)
   }
-  distance_relay_legs <- get_distance_relay_legs(cache)
-  performances |>
-    explode_relay_legs() |>
-    bind_rows(distance_relay_legs)
+}
 
 get_roster <- function (cache = FALSE) {
   fetch_roster(cache) |>
