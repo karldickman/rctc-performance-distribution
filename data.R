@@ -70,6 +70,22 @@ fetch_roster <- function (cache = FALSE) {
   data
 }
 
+fetch_race_data <- function (cache = FALSE) {
+  file.path <- "events.csv"
+  if (cache & file.exists(file.path)) {
+    return(read_csv(file.path, show_col_types = FALSE))
+  } else {
+    data <- read_sheet(
+      "https://docs.google.com/spreadsheets/d/1nnFKb2iRgadVSpTSw0zOk3gewPaLU6u4pxBb-rUY9hQ/",
+      "Races",
+      col_types = "Dccccccdddcdd"
+    ) |>
+      clean_names()
+    write.csv(data, file.path, row.names = FALSE)
+    data
+  }
+}
+
 parse_finish_time <- function (finish.time) {
   if (is.na(finish.time)) {
     return(NA)
@@ -220,6 +236,33 @@ process_roster <- function (data) {
     bind_rows(first.joined)
 }
 
+process_race_data <- function (data) {
+  countries <- c("Germany", "Iceland", "India", "Italy", "Japan", "Mexico")
+  data |>
+    separate_longer_delim(city, delim = " -> ") |>
+    separate_wider_delim(
+      city,
+      delim = ",",
+      names = c("city", "state", "country"),
+      too_few = "align_start"
+    ) |>
+    mutate(
+      city = trimws(city),
+      state = trimws(state),
+      country = trimws(country),
+    ) |>
+    mutate(
+      country = ifelse(state %in% countries, state, country),
+      state = ifelse(state %in% countries, NA, state)
+    ) |>
+    mutate(
+      country = ifelse(state == "BC" & is.na(country), "Canada", country),
+      country = coalesce(country, "United States")
+    ) |>
+    mutate(distance = str_replace(distance, " k", "k")) |>
+    rename(distance_label = distance)
+}
+
 get_distance_relay_legs <- function (cache = FALSE) {
   fetch_distance_relay_legs(cache) |>
     process_distance_relay_legs()
@@ -241,4 +284,9 @@ get_performance_data <- function (include_relay_legs = FALSE, cache = FALSE) {
 get_roster <- function (cache = FALSE) {
   fetch_roster(cache) |>
     process_roster()
+}
+
+get_race_data <- function (cache = FALSE) {
+  fetch_race_data(cache) |>
+    process_race_data()
 }
