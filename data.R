@@ -219,7 +219,13 @@ explode_relay_legs <- function (data) {
       distance_label == distance_label,
       discipline == discipline,
     ))
-  relays <- bind_rows(order.known, order.unknown) |>
+  speed.project <- data |>
+    filter(race == "The Speed Project") |>
+    select(c(athlete, race, date, distance_label, discipline)) |>
+    mutate(team = athlete) |>
+    separate_rows(athlete, sep = ",") |>
+    mutate(athlete = trimws(athlete))
+  relays <- bind_rows(order.known, order.unknown, speed.project) |>
     mutate(flag = "Relay", year = year(date))
   bind_rows(non.relays, relays)
 }
