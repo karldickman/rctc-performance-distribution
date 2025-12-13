@@ -143,7 +143,7 @@ main <- function (training.group.source = "Race", cache = FALSE) {
   performances <- get_performance_data(cache) |>
     explode_relay_legs() |>
     filter(
-      !(gender %in% c("Male team", "Female team"))
+      !(is.na(flag) | !(flag %in% c("Team", "Pacer")))
       & !(discipline %in% c("Duathlon", "Triathlon"))
       & tolower(distance_label) != "distance relay"
       & !is.na(distance_km)
