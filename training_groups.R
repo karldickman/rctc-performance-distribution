@@ -46,11 +46,11 @@ newbie.performances <- function () {
 }
 
 main <- function (lookback.days = 90, cache = FALSE) {
-  roster <- fetch.roster(cache) |>
+  roster <- fetch.roster(cache = cache) |>
     clean_names() |>
     filter(status == "Member" & is.na(to)) |>
     select(athlete = name)
-  performances <- get_performance_data(cache) |>
+  performances <- get_performance_data(cache = cache) |>
     filter_vdottable_performances() |>
     bind_rows(newbie.performances())
   vdot <- fetch.vdot.data(cache) |>
