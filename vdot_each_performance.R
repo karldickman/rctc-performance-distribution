@@ -15,7 +15,7 @@ filter_vdottable_performances <- function (data) {
       pace_min_mi = minutes / distance_mi
     ) |>
     filter(
-      (is.na(flag) | !(flag %in% c("Relay", "Team")))
+      (is.na(flag) | !(flag %in% c("Relay", "Team", "Pacer")))
       & distance_mi >= 1.5 / 1.609334 & distance_mi <= 26.3
       & !(distance_label %in% c("2 k steeplechase", "2 k steeplechase (30\")"))
       & !(discipline %in% c("Trail", "Duathlon", "Triathlon", "Beer mile", "Skimo"))
