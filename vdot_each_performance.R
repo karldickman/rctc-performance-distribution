@@ -181,7 +181,7 @@ most.improved <- function (data) {
     arrange(-slope)
 }
 
-main <- function (cache = FALSE) {
+main <- function (analysis = "Team", cache = FALSE) {
   # Fetch
   performances <- get_performance_data(cache = cache)
   vdot <- get_vdot_data(cache)
@@ -190,10 +190,13 @@ main <- function (cache = FALSE) {
   vdot <- vdot |>
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
-  performances |>
+  data <- performances |>
     filter_vdottable_performances() |>
     convert.xc.times() |>
-    interpolate.vdot(vdot) |>
-    #plot.individual.vdot.over.time("Karl Dickman", lookback.days)
-    plot.team.vdot.over.time(lookback.days)
+    interpolate.vdot(vdot)
+  if (analysis == "Team") {
+    plot.team.vdot.over.time(data, lookback.days)
+  } else {
+    plot.individual.vdot.over.time(data, analysis, lookback.days)
+  }
 }
