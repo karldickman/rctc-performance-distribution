@@ -2,7 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(janitor)
 
-source("../distance-matrix/attendance.R")
+source("../rose-city-track-club/attendance-and-travel/attendance.R")
 source("vdot_each_performance.R")
 
 training.group.assignments <- function (data, roster, lookback.days) {
@@ -35,8 +35,10 @@ training.group.assignments <- function (data, roster, lookback.days) {
     left_join(training.groups, by = join_by(best_vdot >= from, best_vdot <= to)) |>
     select(!c(from, to)) |>
     left_join(data, by = join_by(athlete, best_vdot == vdot)) |>
-    select(!c(distance_mi, minutes, pace_min_mi)) |>
-    rename(best_race = race) |>
+    select(
+      athlete, races, last_race, days_ago, best_vdot, median_vdot, slope, group,
+      best_race = race, date, distance_label, discipline, finish_time
+    ) |>
     arrange(best_vdot)
 }
 
@@ -48,7 +50,7 @@ newbie.performances <- function () {
 main <- function (lookback.days = 90, cache = FALSE) {
   roster <- fetch.roster(cache = cache) |>
     clean_names() |>
-    filter(status == "Member" & is.na(to)) |>
+    filter(status == "Member" & from <= Sys.Date() & is.na(to)) |>
     select(athlete = name)
   performances <- get_performance_data(cache = cache) |>
     filter_vdottable_performances() |>
