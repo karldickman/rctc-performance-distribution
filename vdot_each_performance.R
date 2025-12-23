@@ -182,10 +182,12 @@ most.improved <- function (data) {
 }
 
 main <- function (cache = FALSE) {
+  # Fetch
+  performances <- get_performance_data(cache = cache)
+  vdot <- get_vdot_data(cache)
+  # Process
   lookback.days <- 90
-  performances <- get_performance_data(cache)
-  vdot <- fetch.vdot.data(cache) |>
-    prepare.vdot.data() |>
+  vdot <- vdot |>
     filter(abs(1.6 / 1.609334 - distance_mi) > 0.00000001) |>
     select(!minutes)
   performances |>

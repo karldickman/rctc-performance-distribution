@@ -36,6 +36,11 @@ plot.vdot.data <- function (data) {
     labs(title = "VDOT race paces", x = "Race distance (mi)", y = "Race pace (min/mi)")
 }
 
+get_vdot_data <- function (cache = FALSE) {
+  fetch.vdot.data(cache) |>
+    prepare.vdot.data()
+}
+
 main <- function () {
   fetch.vdot.data() |>
     prepare.vdot.data() |>
