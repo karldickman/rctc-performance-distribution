@@ -112,11 +112,11 @@ plot.individual.vdot.over.time <- function (data, athlete.name, lookback.days) {
   max.vdot <- ceiling(max(athlete.data$vdot))
   vdot.breaks <- min.vdot:max.vdot
   athlete.data |>
+    arrange(date) |>
     mutate(rolling_avg = slide_index_dbl(vdot, date, median, .before = days(lookback.days))) |>
     ggplot(aes(x = date, y = vdot, group = athlete)) +
     geom_line(aes(y = rolling_avg), linetype = "dashed") +
     geom_point(aes(col = discipline)) +
-    geom_smooth() +
     scale_x_date(date_breaks = "3 month", date_labels = "%Y-%m") +
     scale_y_continuous(breaks = vdot.breaks, limits = c(min.vdot, max.vdot)) +
     labs(
