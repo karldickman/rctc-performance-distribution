@@ -135,7 +135,7 @@ plot.team.vdot.over.time <- function (data, lookback.days) {
     ggplot(aes(x = date, y = vdot)) +
     geom_point(aes(col = discipline), size = 0.5) +
     geom_line(aes(y = rolling_avg)) +
-    geom_hline(yintercept = c(37.9, 55.3, 63.2), linetype = "dashed") +
+    #geom_hline(yintercept = c(37.9, 55.3, 63.2), linetype = "dashed") +
     scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
     labs(
       title = "All Rose City race VDOTs",
