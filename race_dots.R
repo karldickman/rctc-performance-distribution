@@ -34,21 +34,21 @@ plot.date.x.distance <- function (performances) {
 
 plot.date.x.pace.x.distance <- function (performances) {
   performances |>
-    ggplot(aes(x = date, y = pace, col = distance_mi)) +
-    geom_point(size = 0.5) +
+    ggplot(aes(x = date, y = pace, col = distance_km)) +
+    geom_point(size = 0.2) +
     scale_x_date(breaks = "1 year", date_labels = "%Y") +
     scale_y_continuous(transform = "log10") +
     scale_color_viridis(
       direction = -1,
       transform = "log10",
       option = "magma",
-      breaks = c(0.5, 1, 3.1, 6.2, 13.1, 26.2, 100)
+      breaks = c(0.1, 0.2, 0.4, 0.8, 1.6, 5, 10, 21.1, 42.2, 161)
     ) +
     labs(
       title = paste(nrow(performances), "races, 2017–present"),
       x = "Date",
       y = "Race pace (min/mi), log scale",
-      col = "Race distance (mi), log scale"
+      col = "Race distance (km), log scale"
     ) +
     theme_bw(base_size = 14) +
     theme(
@@ -59,7 +59,7 @@ plot.date.x.pace.x.distance <- function (performances) {
 }
 
 main <- function (cache = FALSE) {
-  get_performance_data(cache) |>
+  get_performance_data(cache = cache) |>
     filter(
       tolower(distance_label) != "distance relay"
       & !(discipline %in% c("Duathlon", "Triathlon", "Skimo"))
